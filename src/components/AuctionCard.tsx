@@ -1,0 +1,122 @@
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Timer, Gavel, TrendingUp, Users } from "lucide-react";
+
+interface AuctionCardProps {
+  id: string;
+  title: string;
+  image: string;
+  currentPrice: number;
+  totalBids: number;
+  participants: number;
+  onBid: (auctionId: string) => void;
+  userBids: number;
+}
+
+export const AuctionCard = ({ id, title, image, currentPrice, totalBids, participants, onBid, userBids }: AuctionCardProps) => {
+  const [timeLeft, setTimeLeft] = useState(15);
+  const [isActive, setIsActive] = useState(true);
+  const [justBid, setJustBid] = useState(false);
+
+  useEffect(() => {
+    if (!isActive || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isActive]);
+
+  const handleBid = () => {
+    if (userBids <= 0) return;
+    onBid(id);
+    setTimeLeft(15);
+    setIsActive(true);
+    setJustBid(true);
+    setTimeout(() => setJustBid(false), 600);
+  };
+
+  const getTimerColor = () => {
+    if (timeLeft > 10) return "text-success";
+    if (timeLeft > 5) return "text-warning";
+    return "text-destructive animate-countdown";
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(price);
+  };
+
+  return (
+    <Card className="overflow-hidden shadow-card hover:shadow-elegant transition-all duration-300 group">
+      <div className="relative">
+        <img 
+          src={image} 
+          alt={title} 
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        <div className="absolute top-3 right-3">
+          <Badge variant={isActive ? "default" : "secondary"} className="shadow-md">
+            {isActive ? "Ativo" : "Finalizado"}
+          </Badge>
+        </div>
+        <div className="absolute top-3 left-3">
+          <div className={`bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 ${getTimerColor()} font-mono font-bold text-lg`}>
+            <Timer className="inline w-4 h-4 mr-1" />
+            {timeLeft}s
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-6">
+        <h3 className="font-semibold text-lg mb-3 text-foreground">{title}</h3>
+        
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Preço atual:</span>
+            <span className="text-2xl font-bold text-primary">{formatPrice(currentPrice)}</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center text-muted-foreground">
+              <Gavel className="w-4 h-4 mr-1" />
+              {totalBids} lances
+            </div>
+            <div className="flex items-center text-muted-foreground">
+              <Users className="w-4 h-4 mr-1" />
+              {participants} pessoas
+            </div>
+          </div>
+        </div>
+
+        <Button 
+          onClick={handleBid} 
+          disabled={!isActive || userBids <= 0}
+          variant={justBid ? "success" : "bid"}
+          size="lg" 
+          className={`w-full ${justBid ? "animate-bid-success" : ""}`}
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          {isActive ? "DAR LANCE (R$ 1,00)" : "LEILÃO FINALIZADO"}
+        </Button>
+
+        {userBids <= 0 && isActive && (
+          <p className="text-center text-destructive text-sm mt-2">
+            Você precisa comprar lances para participar!
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+};
