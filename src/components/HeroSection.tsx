@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, Clock, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
   return (
@@ -27,13 +28,17 @@ export const HeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="xl" variant="accent" className="shadow-glow">
-              <TrendingUp className="w-5 h-5 mr-2" />
-              Ver Leilões Ativos
-            </Button>
-            <Button size="xl" variant="outline" className="border-white/30 text-white hover:bg-white/10">
-              Como Funciona
-            </Button>
+            <Link to="/leiloes">
+              <Button size="xl" variant="accent" className="shadow-glow w-full sm:w-auto">
+                <TrendingUp className="w-5 h-5 mr-2" />
+                Ver Leilões Ativos
+              </Button>
+            </Link>
+            <Link to="/como-funciona">
+              <Button size="xl" variant="outline" className="border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
+                Como Funciona
+              </Button>
+            </Link>
           </div>
 
           {/* Stats */}

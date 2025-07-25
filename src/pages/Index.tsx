@@ -6,6 +6,7 @@ import { BidPackages } from "@/components/BidPackages";
 import { HowItWorks } from "@/components/HowItWorks";
 import { RecentWinners } from "@/components/RecentWinners";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 // Import product images
 import iphoneImage from "@/assets/iphone-15-pro.jpg";
@@ -90,8 +91,7 @@ const Index = () => {
   };
 
   const handleBuyBids = () => {
-    // Scroll to bid packages section
-    document.getElementById('pacotes')?.scrollIntoView({ behavior: 'smooth' });
+    window.location.href = "/pacotes";
   };
 
   const handlePurchasePackage = (packageId: string, bids: number) => {
@@ -168,7 +168,7 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">Suporte</h4>
               <ul className="space-y-2 text-sm opacity-90">
-                <li>Como Funciona</li>
+                <li><Link to="/como-funciona" className="hover:text-accent transition-colors">Como Funciona</Link></li>
                 <li>FAQ</li>
                 <li>Contato</li>
                 <li>Termos de Uso</li>

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Coins, ShoppingCart, User, Menu, Gavel } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   userBids: number;
@@ -13,7 +14,7 @@ export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-primary rounded-lg shadow-elegant">
               <Gavel className="w-6 h-6 text-primary-foreground" />
             </div>
@@ -23,19 +24,19 @@ export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
               </h1>
               <p className="text-xs text-muted-foreground">Leilões que valem ouro!</p>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            <a href="#leiloes" className="text-foreground hover:text-primary transition-colors">
+            <Link to="/leiloes" className="text-foreground hover:text-primary transition-colors">
               Leilões Ativos
-            </a>
-            <a href="#como-funciona" className="text-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/como-funciona" className="text-foreground hover:text-primary transition-colors">
               Como Funciona
-            </a>
-            <a href="#vencedores" className="text-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/vencedores" className="text-foreground hover:text-primary transition-colors">
               Vencedores
-            </a>
+            </Link>
           </nav>
 
           {/* User Actions */}
