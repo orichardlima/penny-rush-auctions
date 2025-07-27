@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { AuctionCard } from "@/components/AuctionCard";
@@ -7,82 +7,56 @@ import { HowItWorks } from "@/components/HowItWorks";
 import { RecentWinners } from "@/components/RecentWinners";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-
-// Import product images
-import iphoneImage from "@/assets/iphone-15-pro.jpg";
-import macbookImage from "@/assets/macbook-air-m2.jpg";
-import samsungImage from "@/assets/samsung-s24.jpg";
-import playstationImage from "@/assets/playstation-5.jpg";
-import tvImage from "@/assets/smart-tv-55.jpg";
-import watchImage from "@/assets/apple-watch-ultra.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [userBids, setUserBids] = useState(25); // User starts with 25 bids
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock auction data
-  const auctions = [
-    {
-      id: "1",
-      title: "iPhone 15 Pro Max 256GB",
-      image: iphoneImage,
-      currentPrice: 23.45,
-      originalPrice: 8999.00,
-      totalBids: 2345,
-      participants: 187,
-      recentBidders: ["João S.", "Maria L.", "Pedro R.", "Ana C."]
-    },
-    {
-      id: "2", 
-      title: "MacBook Air M2 13'' 512GB",
-      image: macbookImage,
-      currentPrice: 156.78,
-      originalPrice: 12999.00,
-      totalBids: 15678,
-      participants: 892,
-      recentBidders: ["Carlos M.", "Julia K.", "Rafael T."]
-    },
-    {
-      id: "3",
-      title: "Samsung Galaxy S24 Ultra",
-      image: samsungImage,
-      currentPrice: 89.23,
-      originalPrice: 7499.00,
-      totalBids: 8923,
-      participants: 456,
-      recentBidders: ["Lucas P.", "Fernanda B.", "Diego A.", "Camila S.", "Bruno N."]
-    },
-    {
-      id: "4",
-      title: "PlayStation 5 + 2 Controles",
-      image: playstationImage,
-      currentPrice: 67.89,
-      originalPrice: 4799.00,
-      totalBids: 6789,
-      participants: 324,
-      recentBidders: ["Thiago L.", "Isabela F."]
-    },
-    {
-      id: "5",
-      title: "Smart TV 55'' 4K OLED",
-      image: tvImage,
-      currentPrice: 45.67,
-      originalPrice: 3299.00,
-      totalBids: 4567,
-      participants: 234,
-      recentBidders: ["Roberto C.", "Leticia M.", "Gustavo H."]
-    },
-    {
-      id: "6", 
-      title: "Apple Watch Ultra 2",
-      image: watchImage,
-      currentPrice: 123.45,
-      originalPrice: 6999.00,
-      totalBids: 12345,
-      participants: 567,
-      recentBidders: ["Patricia V.", "Eduardo S.", "Mariana O.", "Felipe G."]
-    }
-  ];
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('auctions')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching auctions:', error);
+          toast({
+            title: "Erro ao carregar leilões",
+            description: "Não foi possível carregar os leilões ativos.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const auctionsWithImages = data?.map(auction => ({
+          ...auction,
+          image: auction.image_url || '/placeholder.svg',
+          currentPrice: auction.current_price || 0.10,
+          originalPrice: auction.market_value || 0,
+          totalBids: auction.total_bids || 0,
+          participants: auction.participants_count || 0,
+          recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
+          protected_mode: auction.protected_mode || false,
+          protected_target: auction.revenue_target || 0,
+          currentRevenue: (auction.total_bids || 0) * 1.00 // Cada lance vale R$ 1,00
+        })) || [];
+
+        setAuctions(auctionsWithImages);
+      } catch (error) {
+        console.error('Error fetching auctions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAuctions();
+  }, [toast]);
 
   const handleBid = (auctionId: string) => {
     if (userBids <= 0) {
@@ -135,21 +109,35 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {auctions.map((auction) => (
-                <AuctionCard
-                  key={auction.id}
-                  id={auction.id}
-                  title={auction.title}
-                  image={auction.image}
-                  currentPrice={auction.currentPrice}
-                  originalPrice={auction.originalPrice}
-                  totalBids={auction.totalBids}
-                  participants={auction.participants}
-                  userBids={userBids}
-                  onBid={handleBid}
-                  recentBidders={auction.recentBidders}
-                />
-              ))}
+              {loading ? (
+                <div className="col-span-full text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="mt-4 text-muted-foreground">Carregando leilões...</p>
+                </div>
+              ) : auctions.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-muted-foreground">Nenhum leilão ativo no momento.</p>
+                </div>
+              ) : (
+                auctions.map((auction) => (
+                  <AuctionCard
+                    key={auction.id}
+                    id={auction.id}
+                    title={auction.title}
+                    image={auction.image}
+                    currentPrice={auction.currentPrice}
+                    originalPrice={auction.originalPrice}
+                    totalBids={auction.totalBids}
+                    participants={auction.participants}
+                    userBids={userBids}
+                    onBid={handleBid}
+                    recentBidders={auction.recentBidders}
+                    protected_mode={auction.protected_mode}
+                    protected_target={auction.protected_target}
+                    currentRevenue={auction.currentRevenue}
+                  />
+                ))
+              )}
             </div>
           </div>
         </section>
