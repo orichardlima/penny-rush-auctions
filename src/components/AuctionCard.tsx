@@ -50,20 +50,20 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
   const getTimerClasses = () => {
     if (timeLeft > 10) {
       return {
-        container: "bg-gradient-to-r from-success/20 to-success/10 border-success/30 text-success",
+        container: "bg-background border-2 border-success text-success shadow-lg",
         dot: "bg-success animate-pulse",
         animation: ""
       };
     }
     if (timeLeft > 5) {
       return {
-        container: "bg-gradient-to-r from-warning/30 to-warning/15 border-warning/40 text-warning animate-timer-warning",
+        container: "bg-background border-2 border-warning text-warning shadow-lg animate-timer-warning",
         dot: "bg-warning animate-pulse",
         animation: ""
       };
     }
     return {
-      container: "bg-gradient-to-r from-destructive/40 to-destructive/20 border-destructive/50 text-destructive animate-timer-urgent",
+      container: "bg-background border-2 border-destructive text-destructive shadow-lg animate-timer-urgent",
       dot: "bg-destructive animate-pulse",
       animation: "animate-countdown"
     };
@@ -95,7 +95,7 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
           </Badge>
         </div>
         <div className="absolute top-3 left-3">
-          <div className={`backdrop-blur-md rounded-xl px-4 py-3 border-2 transition-all duration-300 ${getTimerClasses().container}`}>
+          <div className={`rounded-xl px-4 py-3 transition-all duration-300 ${getTimerClasses().container}`}>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${getTimerClasses().dot}`}></div>
               <div className="flex items-center gap-1">
