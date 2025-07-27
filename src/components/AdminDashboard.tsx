@@ -41,6 +41,8 @@ interface Auction {
   total_bids: number;
   participants_count: number;
   created_at: string;
+  market_value: number;
+  revenue_target: number;
 }
 
 interface User {
@@ -80,6 +82,8 @@ const AdminDashboard = () => {
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchAdminData();
@@ -243,6 +247,87 @@ const AdminDashboard = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const deleteAuction = async (auctionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('auctions')
+        .delete()
+        .eq('id', auctionId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Leilão excluído!',
+        description: 'O leilão foi removido com sucesso.',
+      });
+
+      fetchAdminData();
+    } catch (error) {
+      console.error('Error deleting auction:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o leilão.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const editAuction = async () => {
+    if (!editingAuction) return;
+    
+    try {
+      setUploading(true);
+      let imageUrl = editingAuction.image_url;
+
+      // Upload nova imagem se selecionada
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+      }
+
+      const { error } = await supabase
+        .from('auctions')
+        .update({
+          title: editingAuction.title,
+          description: editingAuction.description,
+          image_url: imageUrl,
+          market_value: editingAuction.market_value * 100, // Convert to cents
+          revenue_target: editingAuction.revenue_target * 100, // Convert to cents
+        })
+        .eq('id', editingAuction.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Leilão atualizado!',
+        description: 'As informações do leilão foram atualizadas com sucesso.',
+      });
+
+      setEditingAuction(null);
+      setSelectedImage(null);
+      setIsEditDialogOpen(false);
+      fetchAdminData();
+    } catch (error) {
+      console.error('Error updating auction:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o leilão.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEditClick = (auction: Auction) => {
+    setEditingAuction({
+      ...auction,
+      market_value: auction.market_value / 100, // Convert from cents
+      revenue_target: auction.revenue_target / 100, // Convert from cents
+    });
+    setSelectedImage(null);
+    setIsEditDialogOpen(true);
   };
 
   if (loading) {
@@ -509,10 +594,22 @@ const AdminDashboard = () => {
                         <TableCell>{formatDate(auction.created_at)}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditClick(auction)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja excluir este leilão?')) {
+                                  deleteAuction(auction.id);
+                                }
+                              }}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -707,6 +804,155 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog de Edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Leilão</DialogTitle>
+          </DialogHeader>
+          {editingAuction && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-title">Título do Produto *</Label>
+                  <Input
+                    id="edit-title"
+                    value={editingAuction.title}
+                    onChange={(e) => setEditingAuction({...editingAuction, title: e.target.value})}
+                    placeholder="Ex: iPhone 15 Pro Max 256GB"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-starting_price">Preço Inicial (R$)</Label>
+                  <Input
+                    id="edit-starting_price"
+                    type="number"
+                    step="0.01"
+                    value={editingAuction.starting_price / 100}
+                    onChange={(e) => setEditingAuction({...editingAuction, starting_price: Math.round(parseFloat(e.target.value || '0') * 100)})}
+                    placeholder="1.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Descrição do Produto *</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingAuction.description}
+                  onChange={(e) => setEditingAuction({...editingAuction, description: e.target.value})}
+                  placeholder="Descrição detalhada do produto"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-market_value">Valor na Loja (R$)</Label>
+                  <Input
+                    id="edit-market_value"
+                    type="number"
+                    step="0.01"
+                    value={editingAuction.market_value}
+                    onChange={(e) => setEditingAuction({...editingAuction, market_value: parseFloat(e.target.value || '0')})}
+                    placeholder="8999.00"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-revenue_target">Meta de Faturamento (R$)</Label>
+                  <Input
+                    id="edit-revenue_target"
+                    type="number"
+                    step="0.01"
+                    value={editingAuction.revenue_target}
+                    onChange={(e) => setEditingAuction({...editingAuction, revenue_target: parseFloat(e.target.value || '0')})}
+                    placeholder="500.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-image">Imagem do Produto</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="edit-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const input = document.getElementById('edit-image') as HTMLInputElement;
+                        input?.click();
+                      }}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Escolher
+                    </Button>
+                  </div>
+                  
+                  {(editingAuction.image_url || selectedImage) && (
+                    <div className="relative w-full h-48 border rounded-lg overflow-hidden">
+                      <img
+                        src={selectedImage ? URL.createObjectURL(selectedImage) : editingAuction.image_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          setEditingAuction({...editingAuction, image_url: ''});
+                          setSelectedImage(null);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={editAuction} 
+                  className="flex-1"
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar Alterações'
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setEditingAuction(null);
+                    setSelectedImage(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
