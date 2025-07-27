@@ -276,6 +276,10 @@ export type Database = {
         Args: { auction_uuid: string }
         Returns: number
       }
+      is_admin_user: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
