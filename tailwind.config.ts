@@ -130,6 +130,28 @@ export default {
 						transform: 'scale(1)',
 						backgroundColor: 'hsl(var(--accent))'
 					}
+				},
+				'timer-urgent': {
+					'0%': {
+						transform: 'scale(1)',
+						boxShadow: '0 0 20px hsl(var(--destructive) / 0.5)'
+					},
+					'50%': {
+						transform: 'scale(1.05)',
+						boxShadow: '0 0 30px hsl(var(--destructive) / 0.8)'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						boxShadow: '0 0 20px hsl(var(--destructive) / 0.5)'
+					}
+				},
+				'timer-warning': {
+					'0%': {
+						boxShadow: '0 0 15px hsl(var(--warning) / 0.4)'
+					},
+					'100%': {
+						boxShadow: '0 0 25px hsl(var(--warning) / 0.6)'
+					}
 				}
 			},
 			animation: {
@@ -137,7 +159,9 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 				'countdown': 'countdown 1s ease-in-out infinite',
-				'bid-success': 'bid-success 0.6s ease-out'
+				'bid-success': 'bid-success 0.6s ease-out',
+				'timer-urgent': 'timer-urgent 0.8s ease-in-out infinite',
+				'timer-warning': 'timer-warning 1s ease-in-out infinite alternate'
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',

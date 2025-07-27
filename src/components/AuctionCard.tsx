@@ -47,10 +47,26 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
     setTimeout(() => setJustBid(false), 600);
   };
 
-  const getTimerColor = () => {
-    if (timeLeft > 10) return "text-success";
-    if (timeLeft > 5) return "text-warning";
-    return "text-destructive animate-countdown";
+  const getTimerClasses = () => {
+    if (timeLeft > 10) {
+      return {
+        container: "bg-gradient-to-r from-success/20 to-success/10 border-success/30 text-success",
+        dot: "bg-success animate-pulse",
+        animation: ""
+      };
+    }
+    if (timeLeft > 5) {
+      return {
+        container: "bg-gradient-to-r from-warning/30 to-warning/15 border-warning/40 text-warning animate-timer-warning",
+        dot: "bg-warning animate-pulse",
+        animation: ""
+      };
+    }
+    return {
+      container: "bg-gradient-to-r from-destructive/40 to-destructive/20 border-destructive/50 text-destructive animate-timer-urgent",
+      dot: "bg-destructive animate-pulse",
+      animation: "animate-countdown"
+    };
   };
 
   const formatPrice = (price: number) => {
@@ -79,9 +95,16 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
           </Badge>
         </div>
         <div className="absolute top-3 left-3">
-          <div className={`bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 ${getTimerColor()} font-mono font-bold text-lg`}>
-            <Timer className="inline w-4 h-4 mr-1" />
-            {timeLeft}s
+          <div className={`backdrop-blur-md rounded-xl px-4 py-3 border-2 transition-all duration-300 ${getTimerClasses().container}`}>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${getTimerClasses().dot}`}></div>
+              <div className="flex items-center gap-1">
+                <Timer className="w-5 h-5" />
+                <span className={`font-mono font-bold text-xl ${getTimerClasses().animation}`}>
+                  {timeLeft}s
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
