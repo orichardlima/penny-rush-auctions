@@ -105,7 +105,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header userBids={userBids} onBuyBids={handleBuyBids} />
+      <Header onBuyBids={handleBuyBids} />
       
       <main>
         <HeroSection />

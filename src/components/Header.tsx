@@ -1,14 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, ShoppingCart, User, Menu, Gavel } from "lucide-react";
+import { Coins, ShoppingCart, User, Menu, Gavel, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
-  userBids: number;
-  onBuyBids: () => void;
+  userBids?: number;
+  onBuyBids?: () => void;
 }
 
 export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
+  const { user, profile } = useAuth();
+  const displayBids = userBids !== undefined ? userBids : (profile?.bids_balance || 0);
   return (
     <header className="bg-background border-b border-border shadow-sm sticky top-0 z-50 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4">
@@ -41,23 +44,36 @@ export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
-            {/* User Bids Display */}
-            <div className="flex items-center bg-secondary rounded-lg px-3 py-2">
-              <Coins className="w-4 h-4 text-accent mr-2" />
-              <span className="font-semibold text-foreground">{userBids}</span>
-              <span className="text-xs text-muted-foreground ml-1">lances</span>
-            </div>
+            {user ? (
+              <>
+                {/* User Bids Display */}
+                <div className="flex items-center bg-secondary rounded-lg px-3 py-2">
+                  <Coins className="w-4 h-4 text-accent mr-2" />
+                  <span className="font-semibold text-foreground">{displayBids}</span>
+                  <span className="text-xs text-muted-foreground ml-1">lances</span>
+                </div>
 
-            {/* Buy Bids Button */}
-            <Button onClick={onBuyBids} variant="accent" size="sm">
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              Comprar
-            </Button>
+                {/* Buy Bids Button */}
+                <Button onClick={onBuyBids} variant="accent" size="sm">
+                  <ShoppingCart className="w-4 h-4 mr-1" />
+                  Comprar
+                </Button>
 
-            {/* User Profile */}
-            <Button variant="ghost" size="icon">
-              <User className="w-4 h-4" />
-            </Button>
+                {/* User Profile */}
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="icon">
+                    <User className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button variant="default" size="sm">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Entrar
+                </Button>
+              </Link>
+            )}
 
             {/* Mobile Menu */}
             <Button variant="ghost" size="icon" className="md:hidden">
