@@ -9,13 +9,15 @@ interface AuctionCardProps {
   title: string;
   image: string;
   currentPrice: number;
+  originalPrice: number;
   totalBids: number;
   participants: number;
   onBid: (auctionId: string) => void;
   userBids: number;
+  recentBidders: string[];
 }
 
-export const AuctionCard = ({ id, title, image, currentPrice, totalBids, participants, onBid, userBids }: AuctionCardProps) => {
+export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, totalBids, participants, onBid, userBids, recentBidders }: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState(15);
   const [isActive, setIsActive] = useState(true);
   const [justBid, setJustBid] = useState(false);
@@ -58,6 +60,11 @@ export const AuctionCard = ({ id, title, image, currentPrice, totalBids, partici
     }).format(price);
   };
 
+  const calculateDiscount = () => {
+    const discount = ((originalPrice - currentPrice) / originalPrice) * 100;
+    return Math.round(discount);
+  };
+
   return (
     <Card className="overflow-hidden shadow-card hover:shadow-elegant transition-all duration-300 group">
       <div className="relative">
@@ -87,6 +94,16 @@ export const AuctionCard = ({ id, title, image, currentPrice, totalBids, partici
             <span className="text-muted-foreground">Preço atual:</span>
             <span className="text-2xl font-bold text-primary">{formatPrice(currentPrice)}</span>
           </div>
+
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Valor na loja:</span>
+            <span className="text-lg font-semibold line-through text-muted-foreground">{formatPrice(originalPrice)}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Economia:</span>
+            <span className="text-lg font-bold text-success">{calculateDiscount()}% OFF</span>
+          </div>
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center text-muted-foreground">
@@ -98,6 +115,22 @@ export const AuctionCard = ({ id, title, image, currentPrice, totalBids, partici
               {participants} pessoas
             </div>
           </div>
+
+          {recentBidders.length > 0 && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-1">Últimos lances:</p>
+              <div className="flex flex-wrap gap-1">
+                {recentBidders.slice(0, 3).map((bidder, index) => (
+                  <span key={index} className="text-xs bg-muted px-2 py-1 rounded-full">
+                    {bidder}
+                  </span>
+                ))}
+                {recentBidders.length > 3 && (
+                  <span className="text-xs text-muted-foreground">+{recentBidders.length - 3} mais</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <Button 

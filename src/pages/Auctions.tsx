@@ -21,48 +21,60 @@ const Auctions = () => {
       title: "iPhone 15 Pro Max 256GB",
       image: iphoneImage,
       currentPrice: 23.45,
+      originalPrice: 8999.00,
       totalBids: 2345,
-      participants: 187
+      participants: 187,
+      recentBidders: ["João S.", "Maria L.", "Pedro R.", "Ana C."]
     },
     {
       id: "2", 
       title: "MacBook Air M2 13'' 512GB",
       image: macbookImage,
       currentPrice: 156.78,
+      originalPrice: 12999.00,
       totalBids: 15678,
-      participants: 892
+      participants: 892,
+      recentBidders: ["Carlos M.", "Julia K.", "Rafael T."]
     },
     {
       id: "3",
       title: "Samsung Galaxy S24 Ultra",
       image: samsungImage,
       currentPrice: 89.23,
+      originalPrice: 7499.00,
       totalBids: 8923,
-      participants: 456
+      participants: 456,
+      recentBidders: ["Lucas P.", "Fernanda B.", "Diego A.", "Camila S.", "Bruno N."]
     },
     {
       id: "4",
       title: "PlayStation 5 + 2 Controles",
       image: playstationImage,
       currentPrice: 67.89,
+      originalPrice: 4799.00,
       totalBids: 6789,
-      participants: 324
+      participants: 324,
+      recentBidders: ["Thiago L.", "Isabela F."]
     },
     {
       id: "5",
       title: "Smart TV 55'' 4K OLED",
       image: tvImage,
       currentPrice: 45.67,
+      originalPrice: 3299.00,
       totalBids: 4567,
-      participants: 234
+      participants: 234,
+      recentBidders: ["Roberto C.", "Leticia M.", "Gustavo H."]
     },
     {
       id: "6", 
       title: "Apple Watch Ultra 2",
       image: watchImage,
       currentPrice: 123.45,
+      originalPrice: 6999.00,
       totalBids: 12345,
-      participants: 567
+      participants: 567,
+      recentBidders: ["Patricia V.", "Eduardo S.", "Mariana O.", "Felipe G."]
     }
   ];
 
@@ -111,10 +123,12 @@ const Auctions = () => {
                 title={auction.title}
                 image={auction.image}
                 currentPrice={auction.currentPrice}
+                originalPrice={auction.originalPrice}
                 totalBids={auction.totalBids}
                 participants={auction.participants}
                 userBids={userBids}
                 onBid={handleBid}
+                recentBidders={auction.recentBidders}
               />
             ))}
           </div>
