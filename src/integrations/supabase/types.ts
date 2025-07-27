@@ -25,6 +25,8 @@ export type Database = {
           id: string
           image_url: string | null
           participants_count: number | null
+          protected_mode: boolean | null
+          protected_target: number | null
           starting_price: number | null
           status: string | null
           time_left: number | null
@@ -43,6 +45,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           participants_count?: number | null
+          protected_mode?: boolean | null
+          protected_target?: number | null
           starting_price?: number | null
           status?: string | null
           time_left?: number | null
@@ -61,6 +65,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           participants_count?: number | null
+          protected_mode?: boolean | null
+          protected_target?: number | null
           starting_price?: number | null
           status?: string | null
           time_left?: number | null
@@ -155,6 +161,7 @@ export type Database = {
           cost_paid: number
           created_at: string
           id: string
+          is_bot: boolean | null
           user_id: string
         }
         Insert: {
@@ -163,6 +170,7 @@ export type Database = {
           cost_paid: number
           created_at?: string
           id?: string
+          is_bot?: boolean | null
           user_id: string
         }
         Update: {
@@ -171,11 +179,47 @@ export type Database = {
           cost_paid?: number
           created_at?: string
           id?: string
+          is_bot?: boolean | null
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_logs: {
+        Row: {
+          auction_id: string
+          bid_amount: number
+          created_at: string
+          current_revenue: number
+          id: string
+          target_revenue: number
+        }
+        Insert: {
+          auction_id: string
+          bid_amount: number
+          created_at?: string
+          current_revenue: number
+          id?: string
+          target_revenue: number
+        }
+        Update: {
+          auction_id?: string
+          bid_amount?: number
+          created_at?: string
+          current_revenue?: number
+          id?: string
+          target_revenue?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_logs_auction_id_fkey"
             columns: ["auction_id"]
             isOneToOne: false
             referencedRelation: "auctions"
@@ -224,7 +268,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ensure_bot_user: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_auction_revenue: {
+        Args: { auction_uuid: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
