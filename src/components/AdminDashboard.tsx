@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +24,9 @@ import {
   Package,
   Shield,
   Bot,
-  Settings
+  Settings,
+  Upload,
+  X
 } from 'lucide-react';
 import { AuctionProtectionSettings } from '@/components/AuctionProtectionSettings';
 
@@ -72,7 +75,11 @@ const AdminDashboard = () => {
     description: '',
     image_url: '',
     starting_price: 100,
+    market_value: 0,
+    revenue_target: 0,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchAdminData();
@@ -108,16 +115,53 @@ const AdminDashboard = () => {
     }
   };
 
+  const uploadImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `auctions/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('auction-images')
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('auction-images')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const createAuction = async () => {
+    if (!newAuction.title || !newAuction.description) {
+      toast({
+        title: 'Erro',
+        description: 'Título e descrição são obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploading(true);
     try {
+      let imageUrl = newAuction.image_url;
+
+      // Upload da imagem se selecionada
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+      }
+
       const { error } = await supabase
         .from('auctions')
         .insert([{
           title: newAuction.title,
           description: newAuction.description,
-          image_url: newAuction.image_url,
+          image_url: imageUrl,
           starting_price: newAuction.starting_price,
           current_price: newAuction.starting_price,
+          market_value: newAuction.market_value,
+          revenue_target: newAuction.revenue_target,
           status: 'active'
         }]);
 
@@ -133,7 +177,10 @@ const AdminDashboard = () => {
         description: '',
         image_url: '',
         starting_price: 100,
+        market_value: 0,
+        revenue_target: 0,
       });
+      setSelectedImage(null);
 
       fetchAdminData();
     } catch (error) {
@@ -142,6 +189,18 @@ const AdminDashboard = () => {
         description: 'Erro ao criar leilão.',
         variant: 'destructive',
       });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      // Preview da URL local
+      const url = URL.createObjectURL(file);
+      setNewAuction({...newAuction, image_url: url});
     }
   };
 
@@ -279,50 +338,144 @@ const AdminDashboard = () => {
                     Novo Leilão
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Criar Novo Leilão</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="title">Título</Label>
-                      <Input
-                        id="title"
-                        value={newAuction.title}
-                        onChange={(e) => setNewAuction({...newAuction, title: e.target.value})}
-                        placeholder="Ex: iPhone 15 Pro Max"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="title">Título do Produto *</Label>
+                        <Input
+                          id="title"
+                          value={newAuction.title}
+                          onChange={(e) => setNewAuction({...newAuction, title: e.target.value})}
+                          placeholder="Ex: iPhone 15 Pro Max 256GB"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="starting_price">Preço Inicial (R$)</Label>
+                        <Input
+                          id="starting_price"
+                          type="number"
+                          step="0.01"
+                          value={newAuction.starting_price / 100}
+                          onChange={(e) => setNewAuction({...newAuction, starting_price: Math.round(parseFloat(e.target.value || '0') * 100)})}
+                          placeholder="1.00"
+                        />
+                      </div>
                     </div>
+
                     <div>
-                      <Label htmlFor="description">Descrição</Label>
-                      <Input
+                      <Label htmlFor="description">Descrição do Produto *</Label>
+                      <Textarea
                         id="description"
                         value={newAuction.description}
                         onChange={(e) => setNewAuction({...newAuction, description: e.target.value})}
-                        placeholder="Descrição do produto"
+                        placeholder="Descrição detalhada do produto, incluindo características, condições, etc."
+                        rows={3}
                       />
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="market_value">Valor na Loja (R$)</Label>
+                        <Input
+                          id="market_value"
+                          type="number"
+                          step="0.01"
+                          value={newAuction.market_value / 100}
+                          onChange={(e) => setNewAuction({...newAuction, market_value: Math.round(parseFloat(e.target.value || '0') * 100)})}
+                          placeholder="8999.00"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Valor original do produto no mercado
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="revenue_target">Meta de Faturamento (R$)</Label>
+                        <Input
+                          id="revenue_target"
+                          type="number"
+                          step="0.01"
+                          value={newAuction.revenue_target / 100}
+                          onChange={(e) => setNewAuction({...newAuction, revenue_target: Math.round(parseFloat(e.target.value || '0') * 100)})}
+                          placeholder="500.00"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Bots param de atuar quando atingir essa meta
+                        </p>
+                      </div>
+                    </div>
+
                     <div>
-                      <Label htmlFor="image_url">URL da Imagem</Label>
-                      <Input
-                        id="image_url"
-                        value={newAuction.image_url}
-                        onChange={(e) => setNewAuction({...newAuction, image_url: e.target.value})}
-                        placeholder="/src/assets/produto.jpg"
-                      />
+                      <Label htmlFor="image">Imagem do Produto</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="image"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById('image') as HTMLInputElement;
+                              input?.click();
+                            }}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Escolher
+                          </Button>
+                        </div>
+                        
+                        {newAuction.image_url && (
+                          <div className="relative w-full h-48 border rounded-lg overflow-hidden">
+                            <img
+                              src={newAuction.image_url}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setNewAuction({...newAuction, image_url: ''});
+                                setSelectedImage(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-muted-foreground">
+                          Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="starting_price">Preço Inicial (centavos)</Label>
-                      <Input
-                        id="starting_price"
-                        type="number"
-                        value={newAuction.starting_price}
-                        onChange={(e) => setNewAuction({...newAuction, starting_price: parseInt(e.target.value)})}
-                        placeholder="100"
-                      />
-                    </div>
-                    <Button onClick={createAuction} className="w-full">
-                      Criar Leilão
+
+                    <Button 
+                      onClick={createAuction} 
+                      className="w-full"
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Criando Leilão...
+                        </>
+                      ) : (
+                        'Criar Leilão'
+                      )}
                     </Button>
                   </div>
                 </DialogContent>
