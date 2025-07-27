@@ -1,1 +1,4 @@
 project_id = "tlcdidkkxigofdhxnzzo"
+
+[functions.bot-protected-bid]
+verify_jwt = false

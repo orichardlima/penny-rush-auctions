@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Timer, Gavel, TrendingUp, Users } from "lucide-react";
+import { Timer, Gavel, TrendingUp, Users, Shield, Bot } from "lucide-react";
 
 interface AuctionCardProps {
   id: string;
@@ -15,9 +15,26 @@ interface AuctionCardProps {
   onBid: (auctionId: string) => void;
   userBids: number;
   recentBidders: string[];
+  protected_mode?: boolean;
+  protected_target?: number;
+  currentRevenue?: number;
 }
 
-export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, totalBids, participants, onBid, userBids, recentBidders }: AuctionCardProps) => {
+export const AuctionCard = ({ 
+  id, 
+  title, 
+  image, 
+  currentPrice, 
+  originalPrice, 
+  totalBids, 
+  participants, 
+  onBid, 
+  userBids, 
+  recentBidders,
+  protected_mode = false,
+  protected_target = 0,
+  currentRevenue = 0
+}: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState(15);
   const [isActive, setIsActive] = useState(true);
   const [justBid, setJustBid] = useState(false);
@@ -89,10 +106,16 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
           alt={title} 
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
           <Badge variant={isActive ? "default" : "secondary"} className="shadow-md">
             {isActive ? "Ativo" : "Finalizado"}
           </Badge>
+          {protected_mode && (
+            <Badge variant="outline" className="bg-background/90 border-primary text-primary shadow-md">
+              <Shield className="w-3 h-3 mr-1" />
+              Protegido
+            </Badge>
+          )}
         </div>
         <div className="absolute top-3 left-3">
           <div className={`rounded-xl px-4 py-3 transition-all duration-300 ${getTimerClasses().container}`}>
@@ -138,6 +161,32 @@ export const AuctionCard = ({ id, title, image, currentPrice, originalPrice, tot
               {participants} pessoas
             </div>
           </div>
+
+          {/* Informações de Proteção */}
+          {protected_mode && protected_target > 0 && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2 flex items-center">
+                <Shield className="w-3 h-3 mr-1" />
+                Meta de Proteção:
+              </p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span>Progresso:</span>
+                  <span className="font-medium">
+                    {formatPrice(currentRevenue)} / {formatPrice(protected_target)}
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div 
+                    className="bg-primary h-1.5 rounded-full transition-all duration-300" 
+                    style={{ 
+                      width: `${Math.min((currentRevenue / protected_target) * 100, 100)}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {recentBidders.length > 0 && (
             <div className="pt-2 border-t border-border">

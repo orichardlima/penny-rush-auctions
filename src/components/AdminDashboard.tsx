@@ -20,8 +20,12 @@ import {
   Trash2,
   LogOut,
   BarChart3,
-  Package
+  Package,
+  Shield,
+  Bot,
+  Settings
 } from 'lucide-react';
+import { AuctionProtectionSettings } from '@/components/AuctionProtectionSettings';
 
 interface Auction {
   id: string;
@@ -257,8 +261,9 @@ const AdminDashboard = () => {
 
         {/* Tabs do Dashboard Admin */}
         <Tabs defaultValue="auctions" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="auctions">Leilões</TabsTrigger>
+            <TabsTrigger value="protection">Proteção</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="packages">Pacotes</TabsTrigger>
             <TabsTrigger value="analytics">Estatísticas</TabsTrigger>
@@ -365,6 +370,69 @@ const AdminDashboard = () => {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="protection" className="space-y-4">
+            <div className="flex items-center space-x-2 mb-6">
+              <Shield className="h-6 w-6 text-primary" />
+              <h2 className="text-xl font-semibold">Sistema de Proteção de Leilões</h2>
+            </div>
+
+            <div className="grid gap-6">
+              {auctions.filter(auction => auction.status === 'active').map((auction) => (
+                <Card key={auction.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center space-x-2">
+                          <span>{auction.title}</span>
+                          <Badge variant="outline">{formatPrice(auction.current_price)}</Badge>
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {auction.total_bids} lances realizados
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Função para testar bot protection
+                          supabase.functions.invoke('bot-protected-bid')
+                            .then(() => {
+                              toast({
+                                title: "Sistema de Proteção",
+                                description: "Verificação de proteção executada",
+                                variant: "default"
+                              });
+                            });
+                        }}
+                      >
+                        <Bot className="h-4 w-4 mr-2" />
+                        Testar Proteção
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <AuctionProtectionSettings 
+                      auctionId={auction.id}
+                      currentRevenue={auction.total_bids * 100} // Simulação: cada lance = R$ 1,00
+                      onSettingsUpdated={fetchAdminData}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+
+              {auctions.filter(auction => auction.status === 'active').length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      Nenhum leilão ativo encontrado para configurar proteção.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
