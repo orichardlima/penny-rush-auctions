@@ -24,9 +24,11 @@ export type Database = {
           ends_at: string | null
           id: string
           image_url: string | null
+          market_value: number | null
           participants_count: number | null
           protected_mode: boolean | null
           protected_target: number | null
+          revenue_target: number | null
           starting_price: number | null
           status: string | null
           time_left: number | null
@@ -44,9 +46,11 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          market_value?: number | null
           participants_count?: number | null
           protected_mode?: boolean | null
           protected_target?: number | null
+          revenue_target?: number | null
           starting_price?: number | null
           status?: string | null
           time_left?: number | null
@@ -64,9 +68,11 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          market_value?: number | null
           participants_count?: number | null
           protected_mode?: boolean | null
           protected_target?: number | null
+          revenue_target?: number | null
           starting_price?: number | null
           status?: string | null
           time_left?: number | null
