@@ -14,7 +14,211 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      auctions: {
+        Row: {
+          bid_cost: number | null
+          bid_increment: number | null
+          created_at: string
+          current_price: number | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          participants_count: number | null
+          starting_price: number | null
+          status: string | null
+          time_left: number | null
+          title: string
+          total_bids: number | null
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          bid_cost?: number | null
+          bid_increment?: number | null
+          created_at?: string
+          current_price?: number | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          participants_count?: number | null
+          starting_price?: number | null
+          status?: string | null
+          time_left?: number | null
+          title: string
+          total_bids?: number | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          bid_cost?: number | null
+          bid_increment?: number | null
+          created_at?: string
+          current_price?: number | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          participants_count?: number | null
+          starting_price?: number | null
+          status?: string | null
+          time_left?: number | null
+          title?: string
+          total_bids?: number | null
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      bid_packages: {
+        Row: {
+          bids_count: number
+          created_at: string
+          features: string[] | null
+          icon: string | null
+          id: string
+          is_popular: boolean | null
+          name: string
+          original_price: number | null
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          bids_count: number
+          created_at?: string
+          features?: string[] | null
+          icon?: string | null
+          id?: string
+          is_popular?: boolean | null
+          name: string
+          original_price?: number | null
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          bids_count?: number
+          created_at?: string
+          features?: string[] | null
+          icon?: string | null
+          id?: string
+          is_popular?: boolean | null
+          name?: string
+          original_price?: number | null
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bid_purchases: {
+        Row: {
+          amount_paid: number
+          bids_purchased: number
+          created_at: string
+          id: string
+          package_id: string
+          payment_status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          bids_purchased: number
+          created_at?: string
+          id?: string
+          package_id: string
+          payment_status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          bids_purchased?: number
+          created_at?: string
+          id?: string
+          package_id?: string
+          payment_status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_purchases_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bids: {
+        Row: {
+          auction_id: string
+          bid_amount: number
+          cost_paid: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          auction_id: string
+          bid_amount: number
+          cost_paid: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          auction_id?: string
+          bid_amount?: number
+          cost_paid?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bids_balance: number | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          is_admin: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bids_balance?: number | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bids_balance?: number | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
