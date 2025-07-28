@@ -69,12 +69,24 @@ const Index = () => {
     }
 
     try {
+      // Verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Faça login para dar lances",
+          description: "Você precisa estar logado para participar dos leilões.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Inserir o lance no banco de dados
       const { error } = await supabase
         .from('bids')
         .insert({
           auction_id: auctionId,
-          user_id: 'temp-user-id', // Temporário até ter autenticação
+          user_id: user.id, // Usar o ID real do usuário autenticado
           bid_amount: 1, // 1 centavo
           cost_paid: 100 // Custo do lance em centavos (R$ 1,00)
         });
@@ -97,7 +109,9 @@ const Index = () => {
       });
 
       // Recarregar os leilões para mostrar o preço atualizado
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Erro ao dar lance:', error);
       toast({
