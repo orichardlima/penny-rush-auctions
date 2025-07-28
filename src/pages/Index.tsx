@@ -102,16 +102,25 @@ const Index = () => {
       }
 
       setUserBids(prev => prev - 1);
+      
+      // Atualizar o leilão localmente em vez de recarregar a página
+      setAuctions(prevAuctions => 
+        prevAuctions.map(auction => 
+          auction.id === auctionId 
+            ? { 
+                ...auction, 
+                currentPrice: auction.currentPrice + 0.01, // Aumenta 1 centavo
+                totalBids: auction.totalBids + 1 
+              }
+            : auction
+        )
+      );
+      
       toast({
         title: "Lance realizado!",
         description: "Seu lance foi registrado com sucesso. Boa sorte!",
         variant: "default"
       });
-
-      // Recarregar os leilões para mostrar o preço atualizado
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (error) {
       console.error('Erro ao dar lance:', error);
       toast({
