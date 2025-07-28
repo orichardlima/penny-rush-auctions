@@ -37,8 +37,8 @@ const Index = () => {
         const auctionsWithImages = data?.map(auction => ({
           ...auction,
           image: auction.image_url || '/placeholder.svg',
-          currentPrice: auction.current_price || 0.10,
-          originalPrice: auction.market_value || 0,
+          currentPrice: (auction.current_price || 10) / 100, // Converte centavos para reais
+          originalPrice: (auction.market_value || 0) / 100, // Converte centavos para reais
           totalBids: auction.total_bids || 0,
           participants: auction.participants_count || 0,
           recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
