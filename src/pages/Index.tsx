@@ -43,7 +43,7 @@ const Index = () => {
           participants: auction.participants_count || 0,
           recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
           protected_mode: auction.protected_mode || false,
-          protected_target: auction.revenue_target || 0,
+          protected_target: (auction.protected_target || 0) / 100, // Converte centavos para reais para exibição
           currentRevenue: (auction.total_bids || 0) * 1.00 // Cada lance vale R$ 1,00
         })) || [];
 
@@ -110,7 +110,8 @@ const Index = () => {
             ? { 
                 ...auction, 
                 currentPrice: auction.currentPrice + 0.01, // Aumenta 1 centavo
-                totalBids: auction.totalBids + 1 
+                totalBids: auction.totalBids + 1,
+                currentRevenue: (auction.totalBids + 1) * 1.00 // Atualiza receita atual
               }
             : auction
         )

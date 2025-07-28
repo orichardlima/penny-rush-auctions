@@ -45,6 +45,13 @@ export const AuctionCard = ({
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
+          // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
+          if (protected_mode && currentRevenue < protected_target) {
+            console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target/100, 'Atual:', currentRevenue);
+            // Chama o sistema de proteção
+            triggerBotProtection();
+            return 3; // Dar alguns segundos para o bot agir
+          }
           setIsActive(false);
           return 0;
         }
@@ -53,7 +60,18 @@ export const AuctionCard = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isActive]);
+  }, [timeLeft, isActive, protected_mode, protected_target, currentRevenue]);
+
+  // Função para acionar o sistema de proteção
+  const triggerBotProtection = async () => {
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.functions.invoke('bot-protected-bid');
+      console.log('🤖 Sistema de proteção acionado');
+    } catch (error) {
+      console.error('❌ Erro ao acionar proteção:', error);
+    }
+  };
 
   const handleBid = () => {
     if (userBids <= 0) return;
