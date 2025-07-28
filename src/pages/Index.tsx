@@ -58,7 +58,7 @@ const Index = () => {
     fetchAuctions();
   }, [toast]);
 
-  const handleBid = (auctionId: string) => {
+  const handleBid = async (auctionId: string) => {
     if (userBids <= 0) {
       toast({
         title: "Sem lances disponíveis!",
@@ -68,12 +68,44 @@ const Index = () => {
       return;
     }
 
-    setUserBids(prev => prev - 1);
-    toast({
-      title: "Lance realizado!",
-      description: "Seu lance foi registrado com sucesso. Boa sorte!",
-      variant: "default"
-    });
+    try {
+      // Inserir o lance no banco de dados
+      const { error } = await supabase
+        .from('bids')
+        .insert({
+          auction_id: auctionId,
+          user_id: 'temp-user-id', // Temporário até ter autenticação
+          bid_amount: 1, // 1 centavo
+          cost_paid: 100 // Custo do lance em centavos (R$ 1,00)
+        });
+
+      if (error) {
+        console.error('Erro ao registrar lance:', error);
+        toast({
+          title: "Erro ao dar lance",
+          description: "Não foi possível registrar seu lance. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setUserBids(prev => prev - 1);
+      toast({
+        title: "Lance realizado!",
+        description: "Seu lance foi registrado com sucesso. Boa sorte!",
+        variant: "default"
+      });
+
+      // Recarregar os leilões para mostrar o preço atualizado
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao dar lance:', error);
+      toast({
+        title: "Erro ao dar lance",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleBuyBids = () => {
