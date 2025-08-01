@@ -18,6 +18,8 @@ interface AuctionCardProps {
   protected_mode?: boolean;
   protected_target?: number;
   currentRevenue?: number;
+  timeLeft?: number;
+  isActive?: boolean;
 }
 
 export const AuctionCard = ({ 
@@ -33,10 +35,12 @@ export const AuctionCard = ({
   recentBidders,
   protected_mode = false,
   protected_target = 0,
-  currentRevenue = 0
+  currentRevenue = 0,
+  timeLeft: initialTimeLeft = 15,
+  isActive: initialIsActive = true
 }: AuctionCardProps) => {
-  const [timeLeft, setTimeLeft] = useState(15);
-  const [isActive, setIsActive] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
+  const [isActive, setIsActive] = useState(initialIsActive);
   const [justBid, setJustBid] = useState(false);
 
   useEffect(() => {

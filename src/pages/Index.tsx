@@ -44,7 +44,9 @@ const Index = () => {
           recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
           protected_mode: auction.protected_mode || false,
           protected_target: (auction.protected_target || 0) / 100, // Converte centavos para reais para exibição
-          currentRevenue: (auction.total_bids || 0) * 1.00 // Cada lance vale R$ 1,00
+          currentRevenue: (auction.total_bids || 0) * 1.00, // Cada lance vale R$ 1,00
+          timeLeft: auction.time_left || 15, // Tempo restante do banco
+          isActive: auction.status === 'active' && (auction.time_left || 0) > 0 // Status baseado no banco
         })) || [];
 
         setAuctions(auctionsWithImages);
@@ -191,6 +193,8 @@ const Index = () => {
                     protected_mode={auction.protected_mode}
                     protected_target={auction.protected_target}
                     currentRevenue={auction.currentRevenue}
+                    timeLeft={auction.timeLeft}
+                    isActive={auction.isActive}
                   />
                 ))
               )}
