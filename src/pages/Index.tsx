@@ -15,6 +15,22 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const transformAuctionData = (auction: any) => ({
+    ...auction,
+    image: auction.image_url || '/placeholder.svg',
+    currentPrice: (auction.current_price || 10) / 100,
+    originalPrice: (auction.market_value || 0) / 100,
+    totalBids: auction.total_bids || 0,
+    participants: auction.participants_count || 0,
+    recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
+    protected_mode: auction.protected_mode || false,
+    protected_target: (auction.protected_target || 0) / 100,
+    currentRevenue: (auction.total_bids || 0) * 1.00,
+    timeLeft: auction.ends_at ? Math.max(0, Math.floor((new Date(auction.ends_at).getTime() - Date.now()) / 1000)) : 0,
+    isActive: auction.status === 'active' && (auction.ends_at ? new Date(auction.ends_at) > new Date() : false),
+    ends_at: auction.ends_at
+  });
+
   useEffect(() => {
     const fetchAuctions = async () => {
       try {
@@ -34,21 +50,7 @@ const Index = () => {
           return;
         }
 
-        const auctionsWithImages = data?.map(auction => ({
-          ...auction,
-          image: auction.image_url || '/placeholder.svg',
-          currentPrice: (auction.current_price || 10) / 100, // Converte centavos para reais
-          originalPrice: (auction.market_value || 0) / 100, // Converte centavos para reais
-          totalBids: auction.total_bids || 0,
-          participants: auction.participants_count || 0,
-          recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
-          protected_mode: auction.protected_mode || false,
-          protected_target: (auction.protected_target || 0) / 100, // Converte centavos para reais para exibição
-          currentRevenue: (auction.total_bids || 0) * 1.00, // Cada lance vale R$ 1,00
-          timeLeft: auction.time_left || 15, // Tempo restante do banco
-          isActive: auction.status === 'active' && (auction.time_left || 0) > 0 // Status baseado no banco
-        })) || [];
-
+        const auctionsWithImages = data?.map(transformAuctionData) || [];
         setAuctions(auctionsWithImages);
       } catch (error) {
         console.error('Error fetching auctions:', error);
@@ -58,6 +60,28 @@ const Index = () => {
     };
 
     fetchAuctions();
+
+    // Configurar realtime updates para leilões
+    const channel = supabase
+      .channel('auctions-updates')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'auctions' },
+        (payload) => {
+          console.log('🔄 Atualização de leilão recebida:', payload);
+          const updatedAuction = transformAuctionData(payload.new);
+          
+          setAuctions(prev => 
+            prev.map(auction => 
+              auction.id === updatedAuction.id ? updatedAuction : auction
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
 
   const handleBid = async (auctionId: string) => {
@@ -105,21 +129,16 @@ const Index = () => {
 
       setUserBids(prev => prev - 1);
       
-      // Atualizar o leilão localmente em vez de recarregar a página
-      setAuctions(prevAuctions => 
-        prevAuctions.map(auction => 
-          auction.id === auctionId 
-            ? { 
-                ...auction, 
-                currentPrice: auction.currentPrice + 0.01, // Aumenta 1 centavo
-                totalBids: auction.totalBids + 1,
-                currentRevenue: (auction.totalBids + 1) * 1.00, // Atualiza receita atual
-                timeLeft: 15, // Resetar timer para 15 segundos
-                isActive: true // Garantir que está ativo após lance
-              }
-            : auction
-        )
-      );
+      // Recarregar leilões para pegar dados atualizados do servidor (incluindo novo ends_at)
+      const { data: updatedAuctions } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('status', 'active');
+
+      if (updatedAuctions) {
+        const auctionsWithImages = updatedAuctions.map(transformAuctionData);
+        setAuctions(auctionsWithImages);
+      }
       
       toast({
         title: "Lance realizado!",
@@ -197,6 +216,7 @@ const Index = () => {
                     currentRevenue={auction.currentRevenue}
                     timeLeft={auction.timeLeft}
                     isActive={auction.isActive}
+                    ends_at={auction.ends_at}
                   />
                 ))
               )}

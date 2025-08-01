@@ -278,6 +278,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      finalize_expired_auctions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_auction_revenue: {
         Args: { auction_uuid: string }
         Returns: number

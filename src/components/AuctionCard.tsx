@@ -20,6 +20,7 @@ interface AuctionCardProps {
   currentRevenue?: number;
   timeLeft?: number;
   isActive?: boolean;
+  ends_at?: string;
 }
 
 export const AuctionCard = ({ 
@@ -37,7 +38,8 @@ export const AuctionCard = ({
   protected_target = 0,
   currentRevenue = 0,
   timeLeft: initialTimeLeft = 15,
-  isActive: initialIsActive = true
+  isActive: initialIsActive = true,
+  ends_at
 }: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isActive, setIsActive] = useState(initialIsActive);
@@ -49,28 +51,53 @@ export const AuctionCard = ({
     setIsActive(initialIsActive);
   }, [initialTimeLeft, initialIsActive]);
 
+  // Atualizar timer baseado no tempo real (ends_at)
   useEffect(() => {
-    if (!isActive || timeLeft <= 0) return;
+    if (!isActive || !ends_at) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
-          if (protected_mode && currentRevenue < protected_target) {
-            console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
-            // Chama o sistema de proteção
-            triggerBotProtection();
-            return 3; // Dar alguns segundos para o bot agir
-          }
-          setIsActive(false);
-          return 0;
+    const updateTimer = () => {
+      // Se tivermos ends_at do servidor, calcular baseado nele
+      const now = Date.now();
+      const endTime = new Date(ends_at).getTime();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0) {
+        setIsActive(false);
+      }
+    };
+
+    updateTimer(); // Executar imediatamente
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [ends_at, isActive]);
+
+  // Timer dedicado para proteção - baseado no timestamp ends_at
+  useEffect(() => {
+    if (!isActive || !ends_at) return;
+
+    const protectionTimer = setInterval(() => {
+      const now = Date.now();
+      const endTime = new Date(ends_at).getTime();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      if (remaining <= 1) {
+        // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
+        if (protected_mode && currentRevenue < protected_target) {
+          console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
+          triggerBotProtection();
+          return;
         }
-        return prev - 1;
-      });
+        
+        setIsActive(false);
+        clearInterval(protectionTimer);
+      }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [timeLeft, isActive, protected_mode, protected_target, currentRevenue]);
+    return () => clearInterval(protectionTimer);
+  }, [isActive, ends_at, protected_mode, currentRevenue, protected_target]);
 
   // Função para acionar o sistema de proteção
   const triggerBotProtection = async () => {
