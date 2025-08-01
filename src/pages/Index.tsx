@@ -113,7 +113,9 @@ const Index = () => {
                 ...auction, 
                 currentPrice: auction.currentPrice + 0.01, // Aumenta 1 centavo
                 totalBids: auction.totalBids + 1,
-                currentRevenue: (auction.totalBids + 1) * 1.00 // Atualiza receita atual
+                currentRevenue: (auction.totalBids + 1) * 1.00, // Atualiza receita atual
+                timeLeft: 15, // Resetar timer para 15 segundos
+                isActive: true // Garantir que está ativo após lance
               }
             : auction
         )

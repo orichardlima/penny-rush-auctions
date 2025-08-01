@@ -43,6 +43,12 @@ export const AuctionCard = ({
   const [isActive, setIsActive] = useState(initialIsActive);
   const [justBid, setJustBid] = useState(false);
 
+  // Sincronizar com props quando há alterações (ex: depois de um lance)
+  useEffect(() => {
+    setTimeLeft(initialTimeLeft);
+    setIsActive(initialIsActive);
+  }, [initialTimeLeft, initialIsActive]);
+
   useEffect(() => {
     if (!isActive || timeLeft <= 0) return;
 
@@ -51,7 +57,7 @@ export const AuctionCard = ({
         if (prev <= 1) {
           // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
           if (protected_mode && currentRevenue < protected_target) {
-            console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target/100, 'Atual:', currentRevenue);
+            console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
             // Chama o sistema de proteção
             triggerBotProtection();
             return 3; // Dar alguns segundos para o bot agir
