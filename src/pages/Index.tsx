@@ -7,6 +7,7 @@ import { HowItWorks } from "@/components/HowItWorks";
 import { RecentWinners } from "@/components/RecentWinners";
 import { useToast } from "@/hooks/use-toast";
 import { useAuctionTimer } from "@/hooks/useAuctionTimer";
+import { useTimerSync } from "@/hooks/useTimerSync";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toZonedTime, format } from 'date-fns-tz';
@@ -99,14 +100,10 @@ const Index = () => {
 
   const fetchAuctions = useCallback(async () => {
     try {
-      // Buscar leilões ativos, aguardando e finalizados há menos de 2 dias
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
-        .or(`status.in.(active,waiting),and(status.eq.finished,updated_at.gte.${twoDaysAgo.toISOString()})`)
+        .in('status', ['active', 'waiting'])
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -140,6 +137,9 @@ const Index = () => {
 
   // Hook para verificar e ativar leilões automaticamente
   useAuctionTimer(fetchAuctions);
+
+  // Hook para sincronização global de timers
+  useTimerSync(fetchAuctions);
 
   useEffect(() => {
     fetchAuctions();

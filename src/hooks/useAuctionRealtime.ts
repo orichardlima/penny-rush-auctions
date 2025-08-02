@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,34 +26,6 @@ export const useAuctionRealtime = (auctionId?: string) => {
   const [auctionData, setAuctionData] = useState<AuctionUpdate | null>(null);
   const [recentBids, setRecentBids] = useState<BidUpdate[]>([]);
   const { toast } = useToast();
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // Debounced update function para evitar updates excessivos
-  const debouncedSetAuctionData = useCallback((newData: AuctionUpdate) => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      setAuctionData(prev => {
-        // Só atualizar se houve mudança significativa
-        if (!prev || 
-            prev.current_price !== newData.current_price ||
-            prev.total_bids !== newData.total_bids ||
-            prev.status !== newData.status ||
-            Math.abs(prev.time_left - newData.time_left) > 1) {
-          
-          console.log('📡 Atualizando dados do leilão (debounced):', {
-            timer_change: prev ? prev.time_left - newData.time_left : 0,
-            new_time: newData.time_left,
-            status: newData.status
-          });
-          return newData;
-        }
-        return prev;
-      });
-    }, 200); // Increased debounce to 200ms for better stability
-  }, []);
 
   useEffect(() => {
     if (!auctionId) return;
@@ -74,7 +46,14 @@ export const useAuctionRealtime = (auctionId?: string) => {
         (payload) => {
           console.log('📡 Update do leilão recebido:', payload);
           const newAuctionData = payload.new as AuctionUpdate;
-          debouncedSetAuctionData(newAuctionData);
+          setAuctionData(newAuctionData);
+          
+          // Log para debug do timer
+          console.log('🕐 Timer atualizado:', {
+            time_left: newAuctionData.time_left,
+            ends_at: newAuctionData.ends_at,
+            status: newAuctionData.status
+          });
         }
       )
       .subscribe();
@@ -111,13 +90,10 @@ export const useAuctionRealtime = (auctionId?: string) => {
     // Cleanup
     return () => {
       console.log('🔌 Desconectando realtime channels');
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
       supabase.removeChannel(auctionChannel);
       supabase.removeChannel(bidsChannel);
     };
-  }, [auctionId, toast, debouncedSetAuctionData]);
+  }, [auctionId, toast]);
 
   // Função para resetar timer (simulação - na implementação real viria do realtime)
   const resetTimer = () => {

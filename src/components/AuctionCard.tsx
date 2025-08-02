@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime, format } from 'date-fns-tz';
 import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Gavel } from 'lucide-react';
 import { useAuctionRealtime } from '@/hooks/useAuctionRealtime';
-import { useFluidTimer } from '@/hooks/useFluidTimer';
 
 interface AuctionCardProps {
   id: string;
@@ -52,39 +51,74 @@ export const AuctionCard = ({
   ends_at,
   starts_at
 }: AuctionCardProps) => {
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isActive, setIsActive] = useState(initialIsActive);
   const [justBid, setJustBid] = useState(false);
 
   // Hook para escutar updates em tempo real do leilão
   const { auctionData } = useAuctionRealtime(id);
 
-  // Timer fluido unificado
-  const { timeLeft, syncWithServer, resetTimer, stopTimer } = useFluidTimer({
-    initialTime: initialTimeLeft,
-    isActive: isActive && auctionStatus === 'active',
-    onExpire: () => {
-      setIsActive(false);
-      // Verificar se precisa acionar proteção
-      if (protected_mode && currentRevenue < protected_target) {
-        console.log('🛡️ Proteção ativa: acionando sistema bot');
-        triggerBotProtection();
-      }
-    }
-  });
-
-  // Sincronizar estado do leilão com props e dados em tempo real
+  // Sincronizar com props quando há alterações (ex: depois de um lance)
   useEffect(() => {
+    setTimeLeft(initialTimeLeft);
     setIsActive(initialIsActive);
-  }, [initialIsActive]);
+  }, [initialTimeLeft, initialIsActive]);
 
   // Sincronizar com dados em tempo real recebidos via WebSocket
   useEffect(() => {
-    if (auctionData && auctionData.time_left !== undefined) {
-      // Sincronizar timer com dados do servidor
-      syncWithServer(auctionData.time_left);
+    if (auctionData) {
+      console.log('🔄 Sincronizando timer com realtime:', auctionData.time_left);
+      setTimeLeft(auctionData.time_left);
       setIsActive(auctionData.status === 'active' && auctionData.time_left > 0);
     }
-  }, [auctionData, syncWithServer]);
+  }, [auctionData]);
+
+  // Timer local apenas como fallback - priorizar dados do realtime
+  useEffect(() => {
+    if (auctionStatus !== 'active' || !ends_at || auctionData) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const endTime = new Date(ends_at).getTime();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0) {
+        setIsActive(false);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [ends_at, auctionStatus, auctionData]);
+
+  // Timer dedicado para proteção - baseado no timestamp ends_at
+  useEffect(() => {
+    if (auctionStatus !== 'active' || !ends_at) return;
+
+    const protectionTimer = setInterval(() => {
+      const now = Date.now();
+      const endTime = new Date(ends_at).getTime();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      if (remaining <= 1) {
+        // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
+        if (protected_mode && currentRevenue < protected_target) {
+          console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
+          triggerBotProtection();
+          return;
+        }
+        
+        setIsActive(false);
+        clearInterval(protectionTimer);
+      }
+    }, 1000);
+
+    return () => clearInterval(protectionTimer);
+  }, [auctionStatus, ends_at, protected_mode, currentRevenue, protected_target]);
 
   // Função para acionar o sistema de proteção
   const triggerBotProtection = async () => {
@@ -100,7 +134,7 @@ export const AuctionCard = ({
   const handleBid = () => {
     if (userBids <= 0) return;
     onBid(id);
-    resetTimer(15); // Reset timer to 15 seconds after bid
+    setTimeLeft(15);
     setIsActive(true);
     setJustBid(true);
     setTimeout(() => setJustBid(false), 600);
