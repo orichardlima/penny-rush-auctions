@@ -79,6 +79,7 @@ const AdminDashboard = () => {
     starting_price: 100,
     market_value: 0,
     revenue_target: 0,
+    starts_at: new Date().toISOString().slice(0, 16), // Format for datetime-local input
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -166,6 +167,7 @@ const AdminDashboard = () => {
           current_price: newAuction.starting_price,
           market_value: newAuction.market_value,
           revenue_target: newAuction.revenue_target,
+          starts_at: newAuction.starts_at,
           status: 'active'
         }]);
 
@@ -183,6 +185,7 @@ const AdminDashboard = () => {
         starting_price: 100,
         market_value: 0,
         revenue_target: 0,
+        starts_at: new Date().toISOString().slice(0, 16),
       });
       setSelectedImage(null);
 
@@ -493,6 +496,19 @@ const AdminDashboard = () => {
                           Bots param de atuar quando atingir essa meta
                         </p>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="starts_at">Data e Hora de Início do Leilão</Label>
+                      <Input
+                        id="starts_at"
+                        type="datetime-local"
+                        value={newAuction.starts_at}
+                        onChange={(e) => setNewAuction({...newAuction, starts_at: e.target.value})}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Defina quando o leilão ficará disponível para os usuários
+                      </p>
                     </div>
 
                     <div>

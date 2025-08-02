@@ -21,6 +21,7 @@ interface AuctionCardProps {
   timeLeft?: number;
   isActive?: boolean;
   ends_at?: string;
+  starts_at?: string;
 }
 
 export const AuctionCard = ({ 
@@ -39,7 +40,8 @@ export const AuctionCard = ({
   currentRevenue = 0,
   timeLeft: initialTimeLeft = 15,
   isActive: initialIsActive = true,
-  ends_at
+  ends_at,
+  starts_at
 }: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isActive, setIsActive] = useState(initialIsActive);
@@ -148,6 +150,18 @@ export const AuctionCard = ({
     }).format(price);
   };
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const isAuctionStarted = !starts_at || new Date(starts_at) <= new Date();
+
   const calculateDiscount = () => {
     const discount = ((originalPrice - currentPrice) / originalPrice) * 100;
     return Math.round(discount);
@@ -189,6 +203,14 @@ export const AuctionCard = ({
       
       <div className="p-6">
         <h3 className="font-semibold text-lg mb-3 text-foreground">{title}</h3>
+        
+        {!isAuctionStarted && starts_at && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm font-medium">
+              🕒 Leilão inicia em: {formatDateTime(starts_at)}
+            </p>
+          </div>
+        )}
         
         <div className="space-y-3 mb-4">
           <div className="flex justify-between items-center">
@@ -262,13 +284,13 @@ export const AuctionCard = ({
 
         <Button 
           onClick={handleBid} 
-          disabled={!isActive || userBids <= 0}
+          disabled={!isActive || userBids <= 0 || !isAuctionStarted}
           variant={justBid ? "success" : "bid"}
           size="lg" 
           className={`w-full ${justBid ? "animate-bid-success" : ""}`}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
-          {isActive ? "DAR LANCE (R$ 1,00)" : "LEILÃO FINALIZADO"}
+          {!isAuctionStarted ? "AGUARDANDO INÍCIO" : (isActive ? "DAR LANCE (R$ 1,00)" : "LEILÃO FINALIZADO")}
         </Button>
 
         {userBids <= 0 && isActive && (

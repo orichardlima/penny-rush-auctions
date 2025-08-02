@@ -30,6 +30,7 @@ export type Database = {
           protected_target: number | null
           revenue_target: number | null
           starting_price: number | null
+          starts_at: string | null
           status: string | null
           time_left: number | null
           title: string
@@ -52,6 +53,7 @@ export type Database = {
           protected_target?: number | null
           revenue_target?: number | null
           starting_price?: number | null
+          starts_at?: string | null
           status?: string | null
           time_left?: number | null
           title: string
@@ -74,6 +76,7 @@ export type Database = {
           protected_target?: number | null
           revenue_target?: number | null
           starting_price?: number | null
+          starts_at?: string | null
           status?: string | null
           time_left?: number | null
           title?: string

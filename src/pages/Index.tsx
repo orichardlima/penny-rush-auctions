@@ -28,7 +28,8 @@ const Index = () => {
     currentRevenue: (auction.total_bids || 0) * 1.00,
     timeLeft: auction.ends_at ? Math.max(0, Math.floor((new Date(auction.ends_at).getTime() - Date.now()) / 1000)) : 0,
     isActive: auction.status === 'active' && (auction.ends_at ? new Date(auction.ends_at) > new Date() : false),
-    ends_at: auction.ends_at
+    ends_at: auction.ends_at,
+    starts_at: auction.starts_at
   });
 
   useEffect(() => {
@@ -217,6 +218,7 @@ const Index = () => {
                     timeLeft={auction.timeLeft}
                     isActive={auction.isActive}
                     ends_at={auction.ends_at}
+                    starts_at={auction.starts_at}
                   />
                 ))
               )}
