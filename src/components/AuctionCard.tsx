@@ -20,6 +20,7 @@ interface AuctionCardProps {
   currentRevenue?: number;
   timeLeft?: number;
   isActive?: boolean;
+  auctionStatus?: 'waiting' | 'active' | 'finished';
   ends_at?: string;
   starts_at?: string;
 }
@@ -40,6 +41,7 @@ export const AuctionCard = ({
   currentRevenue = 0,
   timeLeft: initialTimeLeft = 15,
   isActive: initialIsActive = true,
+  auctionStatus = 'active',
   ends_at,
   starts_at
 }: AuctionCardProps) => {
@@ -55,7 +57,7 @@ export const AuctionCard = ({
 
   // Atualizar timer baseado no tempo real (ends_at)
   useEffect(() => {
-    if (!isActive || !ends_at) return;
+    if (auctionStatus !== 'active' || !ends_at) return;
 
     const updateTimer = () => {
       // Se tivermos ends_at do servidor, calcular baseado nele
@@ -74,11 +76,11 @@ export const AuctionCard = ({
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [ends_at, isActive]);
+  }, [ends_at, auctionStatus]);
 
   // Timer dedicado para proteção - baseado no timestamp ends_at
   useEffect(() => {
-    if (!isActive || !ends_at) return;
+    if (auctionStatus !== 'active' || !ends_at) return;
 
     const protectionTimer = setInterval(() => {
       const now = Date.now();
@@ -99,7 +101,7 @@ export const AuctionCard = ({
     }, 1000);
 
     return () => clearInterval(protectionTimer);
-  }, [isActive, ends_at, protected_mode, currentRevenue, protected_target]);
+  }, [auctionStatus, ends_at, protected_mode, currentRevenue, protected_target]);
 
   // Função para acionar o sistema de proteção
   const triggerBotProtection = async () => {
@@ -176,8 +178,11 @@ export const AuctionCard = ({
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 right-3 flex flex-col gap-2">
-          <Badge variant={isActive ? "default" : "secondary"} className="shadow-md">
-            {isActive ? "Ativo" : "Finalizado"}
+          <Badge 
+            variant={auctionStatus === 'active' ? "default" : auctionStatus === 'waiting' ? "outline" : "secondary"} 
+            className="shadow-md"
+          >
+            {auctionStatus === 'waiting' ? "Aguardando" : auctionStatus === 'active' ? "Ativo" : "Finalizado"}
           </Badge>
           {protected_mode && (
             <Badge variant="outline" className="bg-background/90 border-primary text-primary shadow-md">
@@ -186,25 +191,27 @@ export const AuctionCard = ({
             </Badge>
           )}
         </div>
-        <div className="absolute top-3 left-3">
-          <div className={`rounded-xl px-4 py-3 transition-all duration-300 ${getTimerClasses().container}`}>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${getTimerClasses().dot}`}></div>
-              <div className="flex items-center gap-1">
-                <Timer className="w-5 h-5" />
-                <span className={`font-mono font-bold text-xl ${getTimerClasses().animation}`}>
-                  {timeLeft}s
-                </span>
+        {auctionStatus === 'active' && (
+          <div className="absolute top-3 left-3">
+            <div className={`rounded-xl px-4 py-3 transition-all duration-300 ${getTimerClasses().container}`}>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${getTimerClasses().dot}`}></div>
+                <div className="flex items-center gap-1">
+                  <Timer className="w-5 h-5" />
+                  <span className={`font-mono font-bold text-xl ${getTimerClasses().animation}`}>
+                    {timeLeft}s
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       
       <div className="p-6">
         <h3 className="font-semibold text-lg mb-3 text-foreground">{title}</h3>
         
-        {!isAuctionStarted && starts_at && (
+        {auctionStatus === 'waiting' && starts_at && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-yellow-800 text-sm font-medium">
               🕒 Leilão inicia em: {formatDateTime(starts_at)}
@@ -284,16 +291,18 @@ export const AuctionCard = ({
 
         <Button 
           onClick={handleBid} 
-          disabled={!isActive || userBids <= 0 || !isAuctionStarted}
+          disabled={auctionStatus !== 'active' || userBids <= 0}
           variant={justBid ? "success" : "bid"}
           size="lg" 
           className={`w-full ${justBid ? "animate-bid-success" : ""}`}
         >
           <TrendingUp className="w-4 h-4 mr-2" />
-          {!isAuctionStarted ? "AGUARDANDO INÍCIO" : (isActive ? "DAR LANCE (R$ 1,00)" : "LEILÃO FINALIZADO")}
+          {auctionStatus === 'waiting' ? "AGUARDANDO INÍCIO" : 
+           auctionStatus === 'active' ? "DAR LANCE (R$ 1,00)" : 
+           "LEILÃO FINALIZADO"}
         </Button>
 
-        {userBids <= 0 && isActive && (
+        {userBids <= 0 && auctionStatus === 'active' && (
           <p className="text-center text-destructive text-sm mt-2">
             Você precisa comprar lances para participar!
           </p>

@@ -15,22 +15,39 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const transformAuctionData = (auction: any) => ({
-    ...auction,
-    image: auction.image_url || '/placeholder.svg',
-    currentPrice: (auction.current_price || 10) / 100,
-    originalPrice: (auction.market_value || 0) / 100,
-    totalBids: auction.total_bids || 0,
-    participants: auction.participants_count || 0,
-    recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
-    protected_mode: auction.protected_mode || false,
-    protected_target: (auction.protected_target || 0) / 100,
-    currentRevenue: (auction.total_bids || 0) * 1.00,
-    timeLeft: auction.ends_at ? Math.max(0, Math.floor((new Date(auction.ends_at).getTime() - Date.now()) / 1000)) : 0,
-    isActive: auction.status === 'active' && (auction.ends_at ? new Date(auction.ends_at) > new Date() : false),
-    ends_at: auction.ends_at,
-    starts_at: auction.starts_at
-  });
+  const transformAuctionData = (auction: any) => {
+    const now = new Date();
+    const startsAt = auction.starts_at ? new Date(auction.starts_at) : null;
+    const endsAt = auction.ends_at ? new Date(auction.ends_at) : null;
+    
+    // Determinar o status real do leilão
+    let auctionStatus = 'waiting';
+    if (startsAt && startsAt > now) {
+      auctionStatus = 'waiting'; // Ainda não começou
+    } else if (auction.status === 'active' && (!endsAt || endsAt > now)) {
+      auctionStatus = 'active'; // Ativo
+    } else {
+      auctionStatus = 'finished'; // Finalizado
+    }
+    
+    return {
+      ...auction,
+      image: auction.image_url || '/placeholder.svg',
+      currentPrice: (auction.current_price || 10) / 100,
+      originalPrice: (auction.market_value || 0) / 100,
+      totalBids: auction.total_bids || 0,
+      participants: auction.participants_count || 0,
+      recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
+      protected_mode: auction.protected_mode || false,
+      protected_target: (auction.protected_target || 0) / 100,
+      currentRevenue: (auction.total_bids || 0) * 1.00,
+      timeLeft: endsAt ? Math.max(0, Math.floor((endsAt.getTime() - now.getTime()) / 1000)) : 0,
+      auctionStatus,
+      isActive: auctionStatus === 'active',
+      ends_at: auction.ends_at,
+      starts_at: auction.starts_at
+    };
+  };
 
   useEffect(() => {
     const fetchAuctions = async () => {
@@ -217,6 +234,7 @@ const Index = () => {
                     currentRevenue={auction.currentRevenue}
                     timeLeft={auction.timeLeft}
                     isActive={auction.isActive}
+                    auctionStatus={auction.auctionStatus}
                     ends_at={auction.ends_at}
                     starts_at={auction.starts_at}
                   />
