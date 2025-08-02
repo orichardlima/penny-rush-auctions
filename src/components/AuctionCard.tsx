@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime, format } from 'date-fns-tz';
 import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Gavel } from 'lucide-react';
 import { useAuctionRealtime } from '@/hooks/useAuctionRealtime';
-import { useHybridTimer } from '@/hooks/useHybridTimer';
+import { useFluidTimer } from '@/hooks/useFluidTimer';
 
 interface AuctionCardProps {
   id: string;
@@ -58,16 +58,15 @@ export const AuctionCard = ({
   // Hook para escutar updates em tempo real do leilão
   const { auctionData } = useAuctionRealtime(id);
 
-  // Timer híbrido que combina dados locais e do servidor
-  const { timeLeft } = useHybridTimer({
+  // Timer fluido unificado
+  const { timeLeft, syncWithServer, resetTimer, stopTimer } = useFluidTimer({
     initialTime: initialTimeLeft,
-    serverTime: auctionData?.time_left,
     isActive: isActive && auctionStatus === 'active',
     onExpire: () => {
       setIsActive(false);
       // Verificar se precisa acionar proteção
       if (protected_mode && currentRevenue < protected_target) {
-        console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
+        console.log('🛡️ Proteção ativa: acionando sistema bot');
         triggerBotProtection();
       }
     }
@@ -80,10 +79,12 @@ export const AuctionCard = ({
 
   // Sincronizar com dados em tempo real recebidos via WebSocket
   useEffect(() => {
-    if (auctionData) {
+    if (auctionData && auctionData.time_left !== undefined) {
+      // Sincronizar timer com dados do servidor
+      syncWithServer(auctionData.time_left);
       setIsActive(auctionData.status === 'active' && auctionData.time_left > 0);
     }
-  }, [auctionData]);
+  }, [auctionData, syncWithServer]);
 
   // Função para acionar o sistema de proteção
   const triggerBotProtection = async () => {
@@ -99,6 +100,7 @@ export const AuctionCard = ({
   const handleBid = () => {
     if (userBids <= 0) return;
     onBid(id);
+    resetTimer(15); // Reset timer to 15 seconds after bid
     setIsActive(true);
     setJustBid(true);
     setTimeout(() => setJustBid(false), 600);

@@ -36,21 +36,23 @@ export const useAuctionRealtime = (auctionId?: string) => {
     
     debounceTimeoutRef.current = setTimeout(() => {
       setAuctionData(prev => {
-        // Só atualizar se houve mudança significativa no timer ou outros dados importantes
+        // Só atualizar se houve mudança significativa
         if (!prev || 
             prev.current_price !== newData.current_price ||
             prev.total_bids !== newData.total_bids ||
             prev.status !== newData.status ||
             Math.abs(prev.time_left - newData.time_left) > 1) {
-          console.log('🔄 Atualizando dados do leilão:', {
-            timer_diff: prev ? prev.time_left - newData.time_left : 0,
-            new_time: newData.time_left
+          
+          console.log('📡 Atualizando dados do leilão (debounced):', {
+            timer_change: prev ? prev.time_left - newData.time_left : 0,
+            new_time: newData.time_left,
+            status: newData.status
           });
           return newData;
         }
         return prev;
       });
-    }, 100); // Debounce de 100ms
+    }, 200); // Increased debounce to 200ms for better stability
   }, []);
 
   useEffect(() => {
