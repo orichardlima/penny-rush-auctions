@@ -100,10 +100,14 @@ const Index = () => {
 
   const fetchAuctions = useCallback(async () => {
     try {
+      // Buscar leilões ativos, aguardando e finalizados há menos de 2 dias
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
-        .in('status', ['active', 'waiting'])
+        .or(`status.in.(active,waiting),and(status.eq.finished,updated_at.gte.${twoDaysAgo.toISOString()})`)
         .order('created_at', { ascending: false });
 
       if (error) {
