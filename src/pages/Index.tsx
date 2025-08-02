@@ -147,15 +147,20 @@ const Index = () => {
 
       setUserBids(prev => prev - 1);
       
-      // Recarregar leilões para pegar dados atualizados do servidor (incluindo novo ends_at)
-      const { data: updatedAuctions } = await supabase
+      // Buscar apenas o leilão atualizado para manter a ordem original
+      const { data: updatedAuction } = await supabase
         .from('auctions')
         .select('*')
-        .eq('status', 'active');
+        .eq('id', auctionId)
+        .single();
 
-      if (updatedAuctions) {
-        const auctionsWithImages = updatedAuctions.map(transformAuctionData);
-        setAuctions(auctionsWithImages);
+      if (updatedAuction) {
+        const transformedAuction = transformAuctionData(updatedAuction);
+        setAuctions(prev => 
+          prev.map(auction => 
+            auction.id === auctionId ? transformedAuction : auction
+          )
+        );
       }
       
       toast({
