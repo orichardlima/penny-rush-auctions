@@ -15,6 +15,7 @@ import { toZonedTime, format } from 'date-fns-tz';
 const Index = () => {
   const [userBids, setUserBids] = useState(25); // User starts with 25 bids
   const [auctions, setAuctions] = useState<any[]>([]);
+  const [bidding, setBidding] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -171,6 +172,12 @@ const Index = () => {
   }, [toast]);
 
   const handleBid = async (auctionId: string) => {
+    // Verificar se já está processando um lance para este leilão
+    if (bidding.has(auctionId)) {
+      console.log('🚫 Lance já sendo processado para:', auctionId);
+      return;
+    }
+
     if (userBids <= 0) {
       toast({
         title: "Sem lances disponíveis!",
@@ -180,6 +187,9 @@ const Index = () => {
       return;
     }
 
+    // Marcar como processando
+    setBidding(prev => new Set(prev).add(auctionId));
+    
     try {
       // Verificar se o usuário está autenticado
       const { data: { user } } = await supabase.auth.getUser();
@@ -193,18 +203,20 @@ const Index = () => {
         return;
       }
 
+      console.log('🎯 Enviando lance para leilão:', auctionId);
+
       // Inserir o lance no banco de dados
       const { error } = await supabase
         .from('bids')
         .insert({
           auction_id: auctionId,
-          user_id: user.id, // Usar o ID real do usuário autenticado
+          user_id: user.id,
           bid_amount: 1, // 1 centavo
           cost_paid: 100 // Custo do lance em centavos (R$ 1,00)
         });
 
       if (error) {
-        console.error('Erro ao registrar lance:', error);
+        console.error('❌ Erro ao registrar lance:', error);
         toast({
           title: "Erro ao dar lance",
           description: "Não foi possível registrar seu lance. Tente novamente.",
@@ -213,27 +225,8 @@ const Index = () => {
         return;
       }
 
+      console.log('✅ Lance registrado com sucesso');
       setUserBids(prev => prev - 1);
-      
-      // Buscar o leilão atualizado e os lances recentes
-      const { data: updatedAuction } = await supabase
-        .from('auctions')
-        .select('*')
-        .eq('id', auctionId)
-        .single();
-
-      if (updatedAuction) {
-        const recentBidders = await fetchRecentBidders(auctionId);
-        const transformedAuction = transformAuctionData({
-          ...updatedAuction,
-          recentBidders
-        });
-        setAuctions(prev => 
-          prev.map(auction => 
-            auction.id === auctionId ? transformedAuction : auction
-          )
-        );
-      }
       
       toast({
         title: "Lance realizado!",
@@ -241,12 +234,21 @@ const Index = () => {
         variant: "default"
       });
     } catch (error) {
-      console.error('Erro ao dar lance:', error);
+      console.error('❌ Erro ao dar lance:', error);
       toast({
         title: "Erro ao dar lance",
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      // Remover da lista de processamento após 2 segundos para evitar problemas
+      setTimeout(() => {
+        setBidding(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(auctionId);
+          return newSet;
+        });
+      }, 2000);
     }
   };
 

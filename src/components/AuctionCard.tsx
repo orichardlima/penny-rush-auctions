@@ -53,7 +53,7 @@ export const AuctionCard = ({
 }: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isActive, setIsActive] = useState(initialIsActive);
-  const [justBid, setJustBid] = useState(false);
+  const [isBidding, setIsBidding] = useState(false);
 
   // Hook para escutar updates em tempo real do leilão
   const { auctionData } = useAuctionRealtime(id);
@@ -138,13 +138,17 @@ export const AuctionCard = ({
     }
   };
 
-  const handleBid = () => {
-    if (userBids <= 0) return;
-    onBid(id);
-    setTimeLeft(15);
-    setIsActive(true);
-    setJustBid(true);
-    setTimeout(() => setJustBid(false), 600);
+  const handleBid = async () => {
+    if (userBids <= 0 || isBidding) return;
+    
+    setIsBidding(true);
+    try {
+      await onBid(id);
+      setTimeLeft(15);
+      setIsActive(true);
+    } finally {
+      setIsBidding(false);
+    }
   };
 
   const getTimerClasses = () => {
@@ -316,13 +320,14 @@ export const AuctionCard = ({
 
         <Button 
           onClick={handleBid} 
-          disabled={auctionStatus !== 'active' || userBids <= 0}
-          variant={justBid ? "success" : "bid"}
+          disabled={auctionStatus !== 'active' || userBids <= 0 || isBidding}
+          variant={isBidding ? "success" : "bid"}
           size="lg" 
-          className={`w-full ${justBid ? "animate-bid-success" : ""}`}
+          className="w-full"
         >
           <TrendingUp className="w-4 h-4 mr-2" />
-          {auctionStatus === 'waiting' ? "AGUARDANDO INÍCIO" : 
+          {isBidding ? "PROCESSANDO..." :
+           auctionStatus === 'waiting' ? "AGUARDANDO INÍCIO" : 
            auctionStatus === 'active' ? "DAR LANCE (R$ 1,00)" : 
            "LEILÃO FINALIZADO"}
         </Button>
