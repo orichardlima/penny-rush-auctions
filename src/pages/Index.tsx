@@ -55,7 +55,7 @@ const Index = () => {
         const { data, error } = await supabase
           .from('auctions')
           .select('*')
-          .eq('status', 'active')
+          .in('status', ['active', 'waiting'])
           .order('created_at', { ascending: false });
 
         if (error) {
