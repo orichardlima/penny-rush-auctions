@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime, format } from 'date-fns-tz';
-import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Timer, Gavel } from 'lucide-react';
+import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Gavel } from 'lucide-react';
 
 interface AuctionCardProps {
   id: string;
@@ -203,7 +203,7 @@ export const AuctionCard = ({
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${getTimerClasses().dot}`}></div>
                 <div className="flex items-center gap-1">
-                  <Timer className="w-5 h-5" />
+                  <Clock className="w-5 h-5" />
                   <span className={`font-mono font-bold text-xl ${getTimerClasses().animation}`}>
                     {timeLeft}s
                   </span>
