@@ -7,7 +7,6 @@ import { HowItWorks } from "@/components/HowItWorks";
 import { RecentWinners } from "@/components/RecentWinners";
 import { useToast } from "@/hooks/use-toast";
 import { useAuctionTimer } from "@/hooks/useAuctionTimer";
-import { useTimerSync } from "@/hooks/useTimerSync";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toZonedTime, format } from 'date-fns-tz';
@@ -141,9 +140,6 @@ const Index = () => {
 
   // Hook para verificar e ativar leilões automaticamente
   useAuctionTimer(fetchAuctions);
-
-  // Hook para sincronização global de timers
-  useTimerSync(fetchAuctions);
 
   useEffect(() => {
     fetchAuctions();
