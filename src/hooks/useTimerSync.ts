@@ -18,13 +18,13 @@ export const useTimerSync = (onSync?: () => void) => {
     }
   }, [onSync]);
 
-  // Sincronizar a cada 2 milissegundos para máxima fluidez
+  // Sincronizar a cada 1 segundo para balancear fluidez e performance
   useEffect(() => {
     // Sincronizar imediatamente
     syncTimers();
 
-    // Configurar intervalo de sincronização ultra frequente
-    const interval = setInterval(syncTimers, 2);
+    // Configurar intervalo de sincronização otimizado
+    const interval = setInterval(syncTimers, 1000);
 
     return () => clearInterval(interval);
   }, [syncTimers]);
