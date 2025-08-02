@@ -293,6 +293,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      update_auction_timers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
