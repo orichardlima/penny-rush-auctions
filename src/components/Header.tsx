@@ -13,7 +13,7 @@ export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
   const { user, profile } = useAuth();
   const displayBids = userBids !== undefined ? userBids : (profile?.bids_balance || 0);
   return (
-    <header className="bg-background border-b border-border shadow-sm sticky top-0 z-50 backdrop-blur-sm">
+    <header className="bg-background/95 backdrop-blur-sm border-b border-border shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -47,9 +47,9 @@ export const Header = ({ userBids, onBuyBids }: HeaderProps) => {
             {user ? (
               <>
                 {/* User Bids Display */}
-                <div className="flex items-center bg-secondary rounded-lg px-3 py-2">
+                <div className="flex items-center bg-secondary border border-border rounded-lg px-3 py-2 shadow-sm">
                   <Coins className="w-4 h-4 text-accent mr-2" />
-                  <span className="font-semibold text-foreground">{displayBids}</span>
+                  <span className="font-semibold text-secondary-foreground">{displayBids}</span>
                   <span className="text-xs text-muted-foreground ml-1">lances</span>
                 </div>
 
