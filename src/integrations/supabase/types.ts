@@ -293,6 +293,15 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      sync_auction_timer: {
+        Args: { auction_uuid: string }
+        Returns: {
+          id: string
+          time_left: number
+          ends_at: string
+          status: string
+        }[]
+      }
       update_auction_timers: {
         Args: Record<PropertyKey, never>
         Returns: undefined
