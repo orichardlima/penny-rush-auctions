@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
 import { 
   Users, 
   Gavel, 
@@ -157,6 +158,17 @@ const AdminDashboard = () => {
         imageUrl = await uploadImage(selectedImage);
       }
 
+      const brazilTimezone = 'America/Sao_Paulo';
+      const now = new Date();
+      const nowInBrazil = toZonedTime(now, brazilTimezone);
+      
+      // Converter o horário local do admin para UTC considerando o fuso do Brasil
+      const startsAtLocal = new Date(newAuction.starts_at);
+      const startsAtUTC = fromZonedTime(startsAtLocal, brazilTimezone);
+      
+      // Determinar o status baseado no horário de início
+      const status = startsAtUTC <= now ? 'active' : 'waiting';
+
       const { error } = await supabase
         .from('auctions')
         .insert([{
@@ -167,15 +179,15 @@ const AdminDashboard = () => {
           current_price: newAuction.starting_price,
           market_value: newAuction.market_value,
           revenue_target: newAuction.revenue_target,
-          starts_at: newAuction.starts_at,
-          status: 'active'
+          starts_at: startsAtUTC.toISOString(),
+          status: status
         }]);
 
       if (error) throw error;
 
       toast({
         title: 'Leilão criado!',
-        description: 'O leilão foi criado com sucesso.',
+        description: `Leilão criado com sucesso. Status: ${status === 'waiting' ? 'Aguardando início' : 'Ativo'}`,
       });
 
       setNewAuction({
@@ -243,13 +255,11 @@ const AdminDashboard = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const brazilTimezone = 'America/Sao_Paulo';
+    const utcDate = new Date(dateString);
+    const brazilDate = toZonedTime(utcDate, brazilTimezone);
+    
+    return format(brazilDate, 'dd/MM/yyyy HH:mm', { timeZone: brazilTimezone });
   };
 
   const deleteAuction = async (auctionId: string) => {

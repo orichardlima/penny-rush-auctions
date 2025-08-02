@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Timer, Gavel, TrendingUp, Users, Shield, Bot } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toZonedTime, format } from 'date-fns-tz';
+import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Timer, Gavel } from 'lucide-react';
 
 interface AuctionCardProps {
   id: string;
@@ -153,16 +158,17 @@ export const AuctionCard = ({
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const brazilTimezone = 'America/Sao_Paulo';
+    const utcDate = new Date(dateString);
+    const brazilDate = toZonedTime(utcDate, brazilTimezone);
+    
+    return format(brazilDate, 'dd/MM/yyyy HH:mm', { timeZone: brazilTimezone });
   };
 
-  const isAuctionStarted = !starts_at || new Date(starts_at) <= new Date();
+  const brazilTimezone = 'America/Sao_Paulo';
+  const nowInBrazil = toZonedTime(new Date(), brazilTimezone);
+  const startsAtInBrazil = starts_at ? toZonedTime(new Date(starts_at), brazilTimezone) : null;
+  const isAuctionStarted = !startsAtInBrazil || startsAtInBrazil <= nowInBrazil;
 
   const calculateDiscount = () => {
     const discount = ((originalPrice - currentPrice) / originalPrice) * 100;

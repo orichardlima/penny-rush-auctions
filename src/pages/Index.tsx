@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { AuctionCard } from "@/components/AuctionCard";
@@ -6,8 +6,10 @@ import { BidPackages } from "@/components/BidPackages";
 import { HowItWorks } from "@/components/HowItWorks";
 import { RecentWinners } from "@/components/RecentWinners";
 import { useToast } from "@/hooks/use-toast";
+import { useAuctionTimer } from "@/hooks/useAuctionTimer";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toZonedTime, format } from 'date-fns-tz';
 
 const Index = () => {
   const [userBids, setUserBids] = useState(25); // User starts with 25 bids
@@ -16,15 +18,18 @@ const Index = () => {
   const { toast } = useToast();
 
   const transformAuctionData = (auction: any) => {
+    const brazilTimezone = 'America/Sao_Paulo';
     const now = new Date();
-    const startsAt = auction.starts_at ? new Date(auction.starts_at) : null;
-    const endsAt = auction.ends_at ? new Date(auction.ends_at) : null;
+    const nowInBrazil = toZonedTime(now, brazilTimezone);
     
-    // Determinar o status real do leilão
+    const startsAt = auction.starts_at ? toZonedTime(new Date(auction.starts_at), brazilTimezone) : null;
+    const endsAt = auction.ends_at ? toZonedTime(new Date(auction.ends_at), brazilTimezone) : null;
+    
+    // Determinar o status real do leilão usando o fuso do Brasil
     let auctionStatus = 'waiting';
-    if (startsAt && startsAt > now) {
+    if (startsAt && startsAt > nowInBrazil) {
       auctionStatus = 'waiting'; // Ainda não começou
-    } else if (auction.status === 'active' && (!endsAt || endsAt > now)) {
+    } else if (auction.status === 'active' && (!endsAt || endsAt > nowInBrazil)) {
       auctionStatus = 'active'; // Ativo
     } else {
       auctionStatus = 'finished'; // Finalizado
@@ -41,7 +46,7 @@ const Index = () => {
       protected_mode: auction.protected_mode || false,
       protected_target: (auction.protected_target || 0) / 100,
       currentRevenue: (auction.total_bids || 0) * 1.00,
-      timeLeft: endsAt ? Math.max(0, Math.floor((endsAt.getTime() - now.getTime()) / 1000)) : 0,
+      timeLeft: endsAt ? Math.max(0, Math.floor((endsAt.getTime() - nowInBrazil.getTime()) / 1000)) : 0,
       auctionStatus,
       isActive: auctionStatus === 'active',
       ends_at: auction.ends_at,
@@ -49,34 +54,37 @@ const Index = () => {
     };
   };
 
-  useEffect(() => {
-    const fetchAuctions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('auctions')
-          .select('*')
-          .in('status', ['active', 'waiting'])
-          .order('created_at', { ascending: false });
+  const fetchAuctions = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .in('status', ['active', 'waiting'])
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching auctions:', error);
-          toast({
-            title: "Erro ao carregar leilões",
-            description: "Não foi possível carregar os leilões ativos.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        const auctionsWithImages = data?.map(transformAuctionData) || [];
-        setAuctions(auctionsWithImages);
-      } catch (error) {
+      if (error) {
         console.error('Error fetching auctions:', error);
-      } finally {
-        setLoading(false);
+        toast({
+          title: "Erro ao carregar leilões",
+          description: "Não foi possível carregar os leilões ativos.",
+          variant: "destructive"
+        });
+        return;
       }
-    };
 
+      const auctionsWithImages = data?.map(transformAuctionData) || [];
+      setAuctions(auctionsWithImages);
+    } catch (error) {
+      console.error('Error fetching auctions:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  // Hook para verificar e ativar leilões automaticamente
+  useAuctionTimer(fetchAuctions);
+
+  useEffect(() => {
     fetchAuctions();
 
     // Configurar realtime updates para leilões
