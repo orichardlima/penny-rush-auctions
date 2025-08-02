@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime, format } from 'date-fns-tz';
 import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Gavel } from 'lucide-react';
+import { useAuctionRealtime } from '@/hooks/useAuctionRealtime';
 
 interface AuctionCardProps {
   id: string;
@@ -54,18 +55,29 @@ export const AuctionCard = ({
   const [isActive, setIsActive] = useState(initialIsActive);
   const [justBid, setJustBid] = useState(false);
 
+  // Hook para escutar updates em tempo real do leilão
+  const { auctionData } = useAuctionRealtime(id);
+
   // Sincronizar com props quando há alterações (ex: depois de um lance)
   useEffect(() => {
     setTimeLeft(initialTimeLeft);
     setIsActive(initialIsActive);
   }, [initialTimeLeft, initialIsActive]);
 
-  // Atualizar timer baseado no tempo real (ends_at)
+  // Sincronizar com dados em tempo real recebidos via WebSocket
   useEffect(() => {
-    if (auctionStatus !== 'active' || !ends_at) return;
+    if (auctionData) {
+      console.log('🔄 Sincronizando timer com realtime:', auctionData.time_left);
+      setTimeLeft(auctionData.time_left);
+      setIsActive(auctionData.status === 'active' && auctionData.time_left > 0);
+    }
+  }, [auctionData]);
+
+  // Timer local apenas como fallback - priorizar dados do realtime
+  useEffect(() => {
+    if (auctionStatus !== 'active' || !ends_at || auctionData) return;
 
     const updateTimer = () => {
-      // Se tivermos ends_at do servidor, calcular baseado nele
       const now = Date.now();
       const endTime = new Date(ends_at).getTime();
       const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
@@ -77,11 +89,11 @@ export const AuctionCard = ({
       }
     };
 
-    updateTimer(); // Executar imediatamente
+    updateTimer();
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [ends_at, auctionStatus]);
+  }, [ends_at, auctionStatus, auctionData]);
 
   // Timer dedicado para proteção - baseado no timestamp ends_at
   useEffect(() => {

@@ -7,6 +7,8 @@ interface AuctionUpdate {
   current_price: number;
   total_bids: number;
   time_left: number;
+  ends_at: string;
+  status: string;
   protected_mode?: boolean;
   protected_target?: number;
 }
@@ -43,7 +45,15 @@ export const useAuctionRealtime = (auctionId?: string) => {
         },
         (payload) => {
           console.log('📡 Update do leilão recebido:', payload);
-          setAuctionData(payload.new as AuctionUpdate);
+          const newAuctionData = payload.new as AuctionUpdate;
+          setAuctionData(newAuctionData);
+          
+          // Log para debug do timer
+          console.log('🕐 Timer atualizado:', {
+            time_left: newAuctionData.time_left,
+            ends_at: newAuctionData.ends_at,
+            status: newAuctionData.status
+          });
         }
       )
       .subscribe();
