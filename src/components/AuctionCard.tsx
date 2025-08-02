@@ -75,12 +75,19 @@ export const AuctionCard = ({
 
   // Timer local apenas como fallback - priorizar dados do realtime
   useEffect(() => {
-    if (auctionStatus !== 'active' || !ends_at || auctionData) return;
+    if (auctionStatus !== 'active' || !ends_at) return;
 
     const updateTimer = () => {
       const now = Date.now();
       const endTime = new Date(ends_at).getTime();
       const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      console.log('⏰ Timer update:', { 
+        auction: id, 
+        now: new Date(now).toISOString(), 
+        endTime: new Date(endTime).toISOString(), 
+        remaining 
+      });
       
       setTimeLeft(remaining);
       
@@ -93,7 +100,7 @@ export const AuctionCard = ({
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [ends_at, auctionStatus, auctionData]);
+  }, [ends_at, auctionStatus, id]);
 
   // Timer dedicado para proteção - baseado no timestamp ends_at
   useEffect(() => {
