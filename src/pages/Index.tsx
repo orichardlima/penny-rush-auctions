@@ -42,7 +42,7 @@ const Index = () => {
       originalPrice: (auction.market_value || 0) / 100,
       totalBids: auction.total_bids || 0,
       participants: auction.participants_count || 0,
-      recentBidders: ["Usuário A", "Usuário B", "Usuário C"],
+      recentBidders: auction.recentBidders || [], // Usar dados reais dos lances
       protected_mode: auction.protected_mode || false,
       protected_target: (auction.protected_target || 0) / 100,
       currentRevenue: (auction.total_bids || 0) * 1.00,
@@ -52,6 +52,49 @@ const Index = () => {
       ends_at: auction.ends_at,
       starts_at: auction.starts_at
     };
+  };
+
+  // Função para buscar lances recentes de um leilão
+  const fetchRecentBidders = async (auctionId: string) => {
+    try {
+      // Buscar os últimos lances do leilão
+      const { data: bids, error: bidsError } = await supabase
+        .from('bids')
+        .select('user_id, is_bot, created_at')
+        .eq('auction_id', auctionId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (bidsError) {
+        console.error('Erro ao buscar lances recentes:', bidsError);
+        return [];
+      }
+
+      if (!bids || bids.length === 0) {
+        return [];
+      }
+
+      // Buscar os nomes dos usuários
+      const userIds = bids.filter(bid => !bid.is_bot).map(bid => bid.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      // Criar um mapa de user_id para nome
+      const userNameMap = new Map();
+      profiles?.forEach(profile => {
+        userNameMap.set(profile.user_id, profile.full_name || 'Usuário');
+      });
+
+      // Retornar os nomes dos lances recentes
+      return bids.map(bid => 
+        bid.is_bot ? 'Bot' : (userNameMap.get(bid.user_id) || 'Usuário')
+      );
+    } catch (error) {
+      console.error('Erro ao buscar lances recentes:', error);
+      return [];
+    }
   };
 
   const fetchAuctions = useCallback(async () => {
@@ -72,8 +115,18 @@ const Index = () => {
         return;
       }
 
-      const auctionsWithImages = data?.map(transformAuctionData) || [];
-      setAuctions(auctionsWithImages);
+      // Para cada leilão, buscar os lances recentes
+      const auctionsWithBidders = await Promise.all(
+        (data || []).map(async (auction) => {
+          const recentBidders = await fetchRecentBidders(auction.id);
+          return transformAuctionData({
+            ...auction,
+            recentBidders
+          });
+        })
+      );
+
+      setAuctions(auctionsWithBidders);
     } catch (error) {
       console.error('Error fetching auctions:', error);
     } finally {
@@ -92,9 +145,14 @@ const Index = () => {
       .channel('auctions-updates')
       .on('postgres_changes', 
         { event: 'UPDATE', schema: 'public', table: 'auctions' },
-        (payload) => {
+        async (payload) => {
           console.log('🔄 Atualização de leilão recebida:', payload);
-          const updatedAuction = transformAuctionData(payload.new);
+          // Buscar lances recentes atualizados
+          const recentBidders = await fetchRecentBidders(payload.new.id);
+          const updatedAuction = transformAuctionData({
+            ...payload.new,
+            recentBidders
+          });
           
           setAuctions(prev => 
             prev.map(auction => 
@@ -155,7 +213,7 @@ const Index = () => {
 
       setUserBids(prev => prev - 1);
       
-      // Buscar apenas o leilão atualizado para manter a ordem original
+      // Buscar o leilão atualizado e os lances recentes
       const { data: updatedAuction } = await supabase
         .from('auctions')
         .select('*')
@@ -163,7 +221,11 @@ const Index = () => {
         .single();
 
       if (updatedAuction) {
-        const transformedAuction = transformAuctionData(updatedAuction);
+        const recentBidders = await fetchRecentBidders(auctionId);
+        const transformedAuction = transformAuctionData({
+          ...updatedAuction,
+          recentBidders
+        });
         setAuctions(prev => 
           prev.map(auction => 
             auction.id === auctionId ? transformedAuction : auction
