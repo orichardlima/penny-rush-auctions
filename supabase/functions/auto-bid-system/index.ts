@@ -38,7 +38,8 @@ serve(async (req) => {
       .from('auctions')
       .select('*')
       .eq('status', 'active')
-      .eq('auto_bid_enabled', true);
+      .eq('auto_bid_enabled', true)
+      .gt('time_left', 0); // Only consider auctions with time remaining
 
     if (auctionsError) {
       console.error('Error fetching auctions:', auctionsError);

@@ -22,16 +22,21 @@ serve(async (req) => {
   }
 
   try {
-    // Inicializar cliente Supabase
-    const supabaseUrl = "https://tlcdidkkxigofdhxnzzo.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY2RpZGtreGlnb2ZkaHhuenpvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzQ1NjQ3MywiZXhwIjoyMDY5MDMyNDczfQ.bR3SLXwLl8aOp-2YPd85QGIFSDDhOGQgvJ0hUy6VmUQ";
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { 
+        auth: { 
+          autoRefreshToken: false, 
+          persistSession: false 
+        } 
+      }
+    );
 
     console.log('🤖 Bot Protection System - Iniciando verificação...');
 
     // 1. Buscar todos os leilões com proteção ativa
-    const { data: protectedAuctions, error: auctionsError } = await supabase
+    const { data: protectedAuctions, error: auctionsError } = await supabaseClient
       .from('auctions')
       .select(`
         id,
@@ -72,7 +77,7 @@ serve(async (req) => {
         console.log(`\n🔍 Verificando leilão: ${auction.title} (ID: ${auction.id})`);
 
         // Calcular receita atual do leilão
-        const { data: revenueData, error: revenueError } = await supabase
+        const { data: revenueData, error: revenueError } = await supabaseClient
           .rpc('get_auction_revenue', { auction_uuid: auction.id });
 
         if (revenueError) {
@@ -88,7 +93,7 @@ serve(async (req) => {
           console.log(`✅ Meta atingida! Desativando proteção para leilão ${auction.id}`);
           
           // Desativar proteção automaticamente
-          await supabase
+          await supabaseClient
             .from('auctions')
             .update({ protected_mode: false })
             .eq('id', auction.id);
@@ -104,7 +109,7 @@ serve(async (req) => {
         }
 
         // 3. Garantir que existe um usuário bot
-        const { data: botUserId, error: botError } = await supabase
+        const { data: botUserId, error: botError } = await supabaseClient
           .rpc('ensure_bot_user');
 
         if (botError) {
@@ -127,7 +132,7 @@ serve(async (req) => {
           console.log(`🎯 Inserindo lance de proteção: R$ ${(bidAmount / 100).toFixed(2)}`);
 
           // 5. Inserir lance do bot
-          const { data: bidData, error: bidError } = await supabase
+          const { data: bidData, error: bidError } = await supabaseClient
             .from('bids')
             .insert({
               auction_id: auction.id,
@@ -145,7 +150,7 @@ serve(async (req) => {
           }
 
           // 6. Registrar log do bot
-          await supabase
+          await supabaseClient
             .from('bot_logs')
             .insert({
               auction_id: auction.id,
