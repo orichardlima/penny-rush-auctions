@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       auctions: {
         Row: {
+          auto_bid_enabled: boolean | null
+          auto_bid_max_interval: number | null
+          auto_bid_min_interval: number | null
           bid_cost: number | null
           bid_increment: number | null
           created_at: string
@@ -24,7 +27,9 @@ export type Database = {
           ends_at: string | null
           id: string
           image_url: string | null
+          last_auto_bid_at: string | null
           market_value: number | null
+          min_revenue_target: number | null
           participants_count: number | null
           protected_mode: boolean | null
           protected_target: number | null
@@ -39,6 +44,9 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          auto_bid_enabled?: boolean | null
+          auto_bid_max_interval?: number | null
+          auto_bid_min_interval?: number | null
           bid_cost?: number | null
           bid_increment?: number | null
           created_at?: string
@@ -47,7 +55,9 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          last_auto_bid_at?: string | null
           market_value?: number | null
+          min_revenue_target?: number | null
           participants_count?: number | null
           protected_mode?: boolean | null
           protected_target?: number | null
@@ -62,6 +72,9 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          auto_bid_enabled?: boolean | null
+          auto_bid_max_interval?: number | null
+          auto_bid_min_interval?: number | null
           bid_cost?: number | null
           bid_increment?: number | null
           created_at?: string
@@ -70,7 +83,9 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          last_auto_bid_at?: string | null
           market_value?: number | null
+          min_revenue_target?: number | null
           participants_count?: number | null
           protected_mode?: boolean | null
           protected_target?: number | null
@@ -205,26 +220,35 @@ export type Database = {
         Row: {
           auction_id: string
           bid_amount: number
+          bid_type: string | null
           created_at: string
           current_revenue: number
+          fake_user_name: string | null
           id: string
           target_revenue: number
+          time_remaining: number | null
         }
         Insert: {
           auction_id: string
           bid_amount: number
+          bid_type?: string | null
           created_at?: string
           current_revenue: number
+          fake_user_name?: string | null
           id?: string
           target_revenue: number
+          time_remaining?: number | null
         }
         Update: {
           auction_id?: string
           bid_amount?: number
+          bid_type?: string | null
           created_at?: string
           current_revenue?: number
+          fake_user_name?: string | null
           id?: string
           target_revenue?: number
+          time_remaining?: number | null
         }
         Relationships: [
           {
@@ -235,6 +259,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fake_users: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -288,6 +330,13 @@ export type Database = {
       get_auction_revenue: {
         Args: { auction_uuid: string }
         Returns: number
+      }
+      get_random_fake_user: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          user_name: string
+        }[]
       }
       is_admin_user: {
         Args: { user_uuid: string }

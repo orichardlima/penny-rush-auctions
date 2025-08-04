@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.sync-timers]
 verify_jwt = false
+
+[functions.auto-bid-system]
+verify_jwt = false

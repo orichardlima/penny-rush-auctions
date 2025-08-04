@@ -18,6 +18,10 @@ interface AuctionProtectionProps {
 interface ProtectionSettings {
   protected_mode: boolean;
   protected_target: number;
+  auto_bid_enabled: boolean;
+  min_revenue_target: number;
+  auto_bid_min_interval: number;
+  auto_bid_max_interval: number;
 }
 
 interface BotLog {
@@ -35,7 +39,11 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
 }) => {
   const [settings, setSettings] = useState<ProtectionSettings>({
     protected_mode: false,
-    protected_target: 0
+    protected_target: 0,
+    auto_bid_enabled: false,
+    min_revenue_target: 0,
+    auto_bid_min_interval: 1,
+    auto_bid_max_interval: 10
   });
   const [targetInput, setTargetInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,7 +62,7 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
       setLoadingSettings(true);
       const { data, error } = await supabase
         .from('auctions')
-        .select('protected_mode, protected_target')
+        .select('protected_mode, protected_target, auto_bid_enabled, min_revenue_target, auto_bid_min_interval, auto_bid_max_interval')
         .eq('id', auctionId)
         .single();
 
@@ -63,7 +71,11 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
       if (data) {
         setSettings({
           protected_mode: data.protected_mode || false,
-          protected_target: data.protected_target || 0
+          protected_target: data.protected_target || 0,
+          auto_bid_enabled: data.auto_bid_enabled || false,
+          min_revenue_target: data.min_revenue_target || 0,
+          auto_bid_min_interval: data.auto_bid_min_interval || 1,
+          auto_bid_max_interval: data.auto_bid_max_interval || 10
         });
         setTargetInput(data.protected_target ? (data.protected_target / 100).toFixed(2) : '');
       }
@@ -110,9 +122,34 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
         return;
       }
 
+      // Validar configurações de auto-bid
+      if (settings.auto_bid_enabled) {
+        if (settings.min_revenue_target <= 0) {
+          toast({
+            title: "Erro de Validação",
+            description: "Digite um valor válido para o faturamento mínimo do auto-bid",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (settings.auto_bid_min_interval >= settings.auto_bid_max_interval) {
+          toast({
+            title: "Erro de Validação",
+            description: "O intervalo mínimo deve ser menor que o máximo",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       const updateData = {
         protected_mode: settings.protected_mode,
-        protected_target: Math.round(targetValue)
+        protected_target: Math.round(targetValue),
+        auto_bid_enabled: settings.auto_bid_enabled,
+        min_revenue_target: settings.min_revenue_target,
+        auto_bid_min_interval: settings.auto_bid_min_interval,
+        auto_bid_max_interval: settings.auto_bid_max_interval
       };
 
       const { error } = await supabase
@@ -124,7 +161,7 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
 
       toast({
         title: "Configurações Salvas",
-        description: `Proteção ${settings.protected_mode ? 'ativada' : 'desativada'} com sucesso`,
+        description: `Proteção ${settings.protected_mode ? 'ativada' : 'desativada'} e auto-bid ${settings.auto_bid_enabled ? 'ativado' : 'desativado'} com sucesso`,
         variant: "default"
       });
 
@@ -257,6 +294,92 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
               )}
             </div>
           )}
+
+          {/* Configurações de Auto-Bid */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-medium">Sistema de Lances Automáticos</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-bid-mode"
+                checked={settings.auto_bid_enabled}
+                onCheckedChange={(checked) => 
+                  setSettings(prev => ({ ...prev, auto_bid_enabled: checked }))
+                }
+              />
+              <Label htmlFor="auto-bid-mode" className="text-sm">
+                Ativar Lances Automáticos
+              </Label>
+              {settings.auto_bid_enabled && (
+                <Badge variant="secondary" className="ml-2">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Ativo
+                </Badge>
+              )}
+            </div>
+
+            {settings.auto_bid_enabled && (
+              <div className="space-y-3 ml-6 pl-4 border-l">
+                <div className="space-y-2">
+                  <Label htmlFor="min-revenue-target">Faturamento Mínimo (R$)</Label>
+                  <Input
+                    id="min-revenue-target"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 5000.00"
+                    value={settings.min_revenue_target ? (settings.min_revenue_target / 100).toFixed(2) : ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) * 100 || 0;
+                      setSettings(prev => ({ ...prev, min_revenue_target: value }));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Sistema insere lances fictícios até atingir este valor
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="min-interval">Intervalo Min (s)</Label>
+                    <Input
+                      id="min-interval"
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={settings.auto_bid_min_interval}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 1;
+                        setSettings(prev => ({ ...prev, auto_bid_min_interval: value }));
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="max-interval">Intervalo Max (s)</Label>
+                    <Input
+                      id="max-interval"
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={settings.auto_bid_max_interval}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 10;
+                        setSettings(prev => ({ ...prev, auto_bid_max_interval: value }));
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                  <p><strong>Como funciona:</strong> O sistema sorteia usuários fictícios e insere lances aleatórios entre {settings.auto_bid_min_interval}s e {settings.auto_bid_max_interval}s para manter o leilão ativo até atingir R$ {settings.min_revenue_target ? (settings.min_revenue_target / 100).toFixed(2) : '0,00'}.</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Aviso Importante */}
           <div className="flex items-start space-x-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
