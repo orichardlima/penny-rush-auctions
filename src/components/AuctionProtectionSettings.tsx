@@ -29,6 +29,9 @@ interface BotLog {
   bid_amount: number;
   target_revenue: number;
   current_revenue: number;
+  fake_user_name?: string;
+  bid_type: string;
+  time_remaining?: number;
   created_at: string;
 }
 
@@ -428,14 +431,20 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
               {botLogs.map((log) => (
                 <div key={log.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <div className={`w-2 h-2 rounded-full ${log.bid_type === 'auto_bid' ? 'bg-blue-500' : 'bg-primary'}`}></div>
                     <div>
                       <p className="text-sm font-medium">
-                        Lance: {formatCurrency(log.bid_amount)}
+                        {log.fake_user_name || 'Bot'} - Lance: {formatCurrency(log.bid_amount)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Receita: {formatCurrency(log.current_revenue)} / Meta: {formatCurrency(log.target_revenue)}
+                        {log.time_remaining && ` • ${log.time_remaining}s restantes`}
                       </p>
+                      <div className="flex items-center mt-1">
+                        <Badge variant={log.bid_type === 'auto_bid' ? 'default' : 'secondary'} className="text-xs">
+                          {log.bid_type === 'auto_bid' ? 'Lance Automático' : 'Proteção'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center text-xs text-muted-foreground">
