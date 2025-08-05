@@ -654,18 +654,37 @@ const AdminDashboard = () => {
               <h2 className="text-xl font-semibold">Sistema de Proteção de Leilões</h2>
             </div>
 
+            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Configure a proteção dos bots para leilões ativos e aguardando início. 
+                As configurações serão aplicadas automaticamente quando o leilão for ativado.
+              </p>
+            </div>
+
             <div className="grid gap-6">
-              {auctions.filter(auction => auction.status === 'active').map((auction) => (
+              {auctions
+                .filter(auction => ['active', 'waiting'].includes(auction.status))
+                .sort((a, b) => {
+                  // Active auctions first, then waiting
+                  if (a.status === 'active' && b.status !== 'active') return -1;
+                  if (a.status !== 'active' && b.status === 'active') return 1;
+                  return 0;
+                })
+                .map((auction) => (
                 <Card key={auction.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center space-x-2">
                           <span>{auction.title}</span>
+                          <Badge variant={auction.status === 'active' ? 'default' : 'secondary'}>
+                            {auction.status === 'active' ? 'Ativo' : 'Aguardando'}
+                          </Badge>
                           <Badge variant="outline">{formatPrice(auction.current_price)}</Badge>
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {auction.total_bids} lances realizados
+                          {auction.status === 'waiting' && ' • Configurações prontas para ativação'}
                         </p>
                       </div>
                       <Button 
@@ -698,12 +717,15 @@ const AdminDashboard = () => {
                 </Card>
               ))}
 
-              {auctions.filter(auction => auction.status === 'active').length === 0 && (
+              {auctions.filter(auction => ['active', 'waiting'].includes(auction.status)).length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
                     <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">
-                      Nenhum leilão ativo encontrado para configurar proteção.
+                      Nenhum leilão disponível para configurar proteção.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Crie novos leilões na aba "Leilões" para configurar a proteção dos bots.
                     </p>
                   </CardContent>
                 </Card>
