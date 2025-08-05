@@ -127,7 +127,8 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
 
       // Validar configurações de auto-bid
       if (settings.auto_bid_enabled) {
-        if (settings.min_revenue_target <= 0) {
+        const minRevenueValue = Math.round(settings.min_revenue_target);
+        if (minRevenueValue <= 0) {
           toast({
             title: "Erro de Validação",
             description: "Digite um valor válido para o faturamento mínimo do auto-bid",
@@ -150,7 +151,7 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
         protected_mode: settings.protected_mode,
         protected_target: Math.round(targetValue),
         auto_bid_enabled: settings.auto_bid_enabled,
-        min_revenue_target: settings.min_revenue_target,
+        min_revenue_target: Math.round(settings.min_revenue_target),
         auto_bid_min_interval: settings.auto_bid_min_interval,
         auto_bid_max_interval: settings.auto_bid_max_interval
       };
