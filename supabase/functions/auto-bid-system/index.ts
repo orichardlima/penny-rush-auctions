@@ -89,29 +89,60 @@ serve(async (req) => {
         continue;
       }
 
-      // Tornar o sistema mais agressivo - dar lances mais frequentes
-      const criticalTime = auction.time_left <= 8;
+      // Sistema de lances humanizado baseado no time_left
+      const criticalTime = auction.time_left <= 5;
+      const urgentTime = auction.time_left <= 3;
       
-      // Lógica mais agressiva para lances
+      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Critical: ${criticalTime}, Urgent: ${urgentTime}`);
+      
       let shouldBid = false;
+      let bidReason = '';
       
       if (auction.last_auto_bid_at) {
         const lastBidTime = new Date(auction.last_auto_bid_at).getTime();
         const now = new Date().getTime();
         const timeSinceLastBid = (now - lastBidTime) / 1000;
         
-        // Intervalos mais curtos e agressivos
-        let minInterval = criticalTime ? 2 : auction.auto_bid_min_interval;
-        let maxInterval = criticalTime ? 4 : Math.min(auction.auto_bid_max_interval, 8);
+        // Lógica baseada no time_left para comportamento mais humanizado
+        if (urgentTime) {
+          // Últimos 3 segundos - lance quase garantido
+          shouldBid = Math.random() < 0.9;
+          bidReason = 'urgent_time';
+        } else if (criticalTime) {
+          // 4-5 segundos - lance muito provável
+          shouldBid = Math.random() < 0.7;
+          bidReason = 'critical_time';
+        } else if (auction.time_left <= 10) {
+          // 6-10 segundos - lance moderadamente provável
+          shouldBid = timeSinceLastBid >= 3 && Math.random() < 0.5;
+          bidReason = 'moderate_pressure';
+        } else {
+          // Mais de 10 segundos - lance baseado em intervalo
+          const minInterval = auction.auto_bid_min_interval;
+          const maxInterval = Math.min(auction.auto_bid_max_interval, 6);
+          const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
+          shouldBid = timeSinceLastBid >= randomInterval;
+          bidReason = 'interval_based';
+        }
         
-        const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
-        shouldBid = timeSinceLastBid >= randomInterval;
-        
-        console.log(`⏱️ Time since last bid: ${timeSinceLastBid}s, Next interval: ${randomInterval}s, Critical: ${criticalTime}`);
+        console.log(`⏱️ Time since last bid: ${timeSinceLastBid}s, Should bid: ${shouldBid}, Reason: ${bidReason}`);
       } else {
-        // Primeira chance de dar lance - mais provável
-        shouldBid = Math.random() < 0.7; // 70% chance no primeiro check
-        console.log(`🎲 First bid opportunity - rolling: ${shouldBid ? 'YES' : 'NO'}`);
+        // Primeiro lance - chance baseada no time_left
+        if (auction.time_left <= 10) {
+          shouldBid = Math.random() < 0.8; // 80% chance se timer baixo
+          bidReason = 'first_bid_low_timer';
+        } else {
+          shouldBid = Math.random() < 0.4; // 40% chance se timer alto
+          bidReason = 'first_bid_normal';
+        }
+        console.log(`🎲 First bid opportunity - Timer: ${auction.time_left}s, Rolling: ${shouldBid ? 'YES' : 'NO'}, Reason: ${bidReason}`);
+      }
+      
+      // Pausa estratégica ocasional para simular hesitação humana
+      if (shouldBid && !urgentTime && Math.random() < 0.1) {
+        shouldBid = false;
+        bidReason = 'strategic_pause';
+        console.log(`🤔 Strategic pause - simulating human hesitation`);
       }
 
       if (!shouldBid) {
