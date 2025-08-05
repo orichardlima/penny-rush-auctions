@@ -102,7 +102,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
-        .in('status', ['active', 'waiting'])
+        .or(`status.in.(active,waiting),and(status.eq.finished,updated_at.gte.${new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()})`)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -290,10 +290,19 @@ const Index = () => {
                 </div>
               ) : auctions.length === 0 ? (
                 <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">Nenhum leilão ativo no momento.</p>
+                  <p className="text-muted-foreground">Nenhum leilão disponível no momento.</p>
                 </div>
               ) : (
-                auctions.map((auction) => (
+                auctions
+                  .sort((a, b) => {
+                    // Ordenar: ativos, em espera, finalizados
+                    const statusOrder = { active: 1, waiting: 2, finished: 3 };
+                    if (statusOrder[a.auctionStatus] !== statusOrder[b.auctionStatus]) {
+                      return statusOrder[a.auctionStatus] - statusOrder[b.auctionStatus];
+                    }
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                  })
+                  .map((auction) => (
                   <AuctionCard
                     key={auction.id}
                     id={auction.id}
