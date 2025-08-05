@@ -9,8 +9,6 @@ interface AuctionUpdate {
   time_left: number;
   ends_at: string;
   status: string;
-  protected_mode?: boolean;
-  protected_target?: number;
 }
 
 interface BidUpdate {
@@ -18,7 +16,6 @@ interface BidUpdate {
   auction_id: string;
   user_id: string;
   bid_amount: number;
-  is_bot: boolean;
   created_at: string;
 }
 
@@ -74,15 +71,6 @@ export const useAuctionRealtime = (auctionId?: string) => {
           const newBid = payload.new as BidUpdate;
           
           setRecentBids(prev => [newBid, ...prev.slice(0, 9)]); // Manter apenas 10 lances
-
-          // Mostrar notificação para lances de bot
-          if (newBid.is_bot) {
-            toast({
-              title: "🤖 Lance de Proteção",
-              description: `Bot fez lance de R$ ${(newBid.bid_amount / 100).toFixed(2)}`,
-              variant: "default"
-            });
-          }
         }
       )
       .subscribe();

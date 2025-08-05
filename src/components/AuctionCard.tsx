@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime, format } from 'date-fns-tz';
-import { Clock, Users, TrendingUp, ShieldCheck, Zap, Shield, Gavel } from 'lucide-react';
+import { Clock, Users, TrendingUp, Gavel } from 'lucide-react';
 import { useAuctionRealtime } from '@/hooks/useAuctionRealtime';
 
 interface AuctionCardProps {
@@ -21,8 +21,6 @@ interface AuctionCardProps {
   onBid: (auctionId: string) => void;
   userBids: number;
   recentBidders: string[];
-  protected_mode?: boolean;
-  protected_target?: number;
   currentRevenue?: number;
   timeLeft?: number;
   isActive?: boolean;
@@ -42,8 +40,6 @@ export const AuctionCard = ({
   onBid, 
   userBids, 
   recentBidders,
-  protected_mode = false,
-  protected_target = 0,
   currentRevenue = 0,
   timeLeft: initialTimeLeft = 15,
   isActive: initialIsActive = true,
@@ -178,12 +174,6 @@ export const AuctionCard = ({
           >
             {auctionStatus === 'waiting' ? "Aguardando" : auctionStatus === 'active' ? "Ativo" : "Finalizado"}
           </Badge>
-          {protected_mode && (
-            <Badge variant="outline" className="bg-background/90 border-primary text-primary shadow-md">
-              <Shield className="w-3 h-3 mr-1" />
-              Protegido
-            </Badge>
-          )}
         </div>
         {auctionStatus === 'active' && (
           <div className="absolute top-3 left-3">
@@ -240,31 +230,6 @@ export const AuctionCard = ({
             </div>
           </div>
 
-          {/* Informações de Proteção */}
-          {protected_mode && protected_target > 0 && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-2 flex items-center">
-                <Shield className="w-3 h-3 mr-1" />
-                Meta de Proteção:
-              </p>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>Progresso:</span>
-                  <span className="font-medium">
-                    {formatPrice(currentRevenue)} / {formatPrice(protected_target)}
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
-                  <div 
-                    className="bg-primary h-1.5 rounded-full transition-all duration-300" 
-                    style={{ 
-                      width: `${Math.min((currentRevenue / protected_target) * 100, 100)}%` 
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {recentBidders.length > 0 && (
             <div className="pt-2 border-t border-border">

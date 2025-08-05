@@ -45,8 +45,6 @@ const Index = () => {
       totalBids: auction.total_bids || 0,
       participants: auction.participants_count || 0,
       recentBidders: auction.recentBidders || [], // Usar dados reais dos lances
-      protected_mode: auction.protected_mode || false,
-      protected_target: (auction.protected_target || 0) / 100,
       currentRevenue: (auction.total_bids || 0) * 1.00,
       timeLeft: endsAt ? Math.max(0, Math.floor((endsAt.getTime() - nowInBrazil.getTime()) / 1000)) : 0,
       auctionStatus,
@@ -62,7 +60,7 @@ const Index = () => {
       // Buscar os últimos lances do leilão
       const { data: bids, error: bidsError } = await supabase
         .from('bids')
-        .select('user_id, is_bot, created_at')
+        .select('user_id, created_at')
         .eq('auction_id', auctionId)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -77,7 +75,7 @@ const Index = () => {
       }
 
       // Buscar os nomes dos usuários
-      const userIds = bids.filter(bid => !bid.is_bot).map(bid => bid.user_id);
+      const userIds = bids.map(bid => bid.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, full_name')
@@ -91,7 +89,7 @@ const Index = () => {
 
       // Retornar os nomes dos lances recentes
       return bids.map(bid => 
-        bid.is_bot ? 'Bot' : (userNameMap.get(bid.user_id) || 'Usuário')
+        userNameMap.get(bid.user_id) || 'Usuário'
       );
     } catch (error) {
       console.error('Erro ao buscar lances recentes:', error);
@@ -308,8 +306,6 @@ const Index = () => {
                     userBids={userBids}
                     onBid={handleBid}
                     recentBidders={auction.recentBidders}
-                    protected_mode={auction.protected_mode}
-                    protected_target={auction.protected_target}
                     currentRevenue={auction.currentRevenue}
                     timeLeft={auction.timeLeft}
                     isActive={auction.isActive}
