@@ -67,14 +67,17 @@ serve(async (req) => {
       const currentRevenue = revenueData || 0;
       console.log(`💰 Receita atual do leilão ${auction.id}: R$${currentRevenue} / R$${auction.revenue_target}`);
 
-      // Se a receita já atingiu a meta, não intervir
-      if (currentRevenue >= auction.revenue_target) {
-        console.log(`✅ Leilão ${auction.id} já atingiu a meta, não precisa de bot`);
+      // Calcular % da meta atingida
+      const revenuePercentage = (currentRevenue / auction.revenue_target) * 100;
+      
+      // Se já atingiu 80% da meta, não intervir
+      if (revenuePercentage >= 80) {
+        console.log(`✅ Leilão ${auction.id} atingiu ${revenuePercentage.toFixed(1)}% da meta, não precisa de bot`);
         continue;
       }
 
       // Tempo crítico e receita insuficiente - ativar bot
-      if (auction.time_left <= 7 && auction.time_left > 2) {
+      if (auction.time_left <= 7 && auction.time_left > 1) {
         console.log(`🚨 Ativando bot para leilão ${auction.id}`);
 
         // Obter bot aleatório
