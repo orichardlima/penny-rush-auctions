@@ -332,12 +332,12 @@ export const AuctionProtectionSettings: React.FC<AuctionProtectionProps> = ({
                   <Input
                     id="min-revenue-target"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
-                    placeholder="Ex: 5000.00"
-                    value={settings.min_revenue_target ? (settings.min_revenue_target / 100).toFixed(2) : ''}
+                    placeholder="Ex: 5000"
+                    value={settings.min_revenue_target ? (settings.min_revenue_target / 100).toFixed(0) : ''}
                     onChange={(e) => {
-                      const value = parseFloat(e.target.value) * 100 || 0;
+                      const value = parseInt(e.target.value) * 100 || 0;
                       setSettings(prev => ({ ...prev, min_revenue_target: value }));
                     }}
                   />
