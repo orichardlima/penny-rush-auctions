@@ -68,7 +68,7 @@ serve(async (req) => {
       if (currentRevenue < auction.protected_target) {
         console.log(`🚨 Meta não atingida! Acionando proteção para leilão: ${auction.title}`);
 
-        // Get bot user
+        // Get bot user (usando a função corrigida)
         const { data: botUser, error: botError } = await supabaseClient
           .rpc('ensure_bot_user');
 
@@ -77,16 +77,9 @@ serve(async (req) => {
           continue;
         }
 
-        // Get fake user name
-        const { data: fakeUser, error: fakeUserError } = await supabaseClient
-          .rpc('get_random_fake_user');
-
-        if (fakeUserError) {
-          console.error('❌ Erro ao obter usuário fake:', fakeUserError);
-          continue;
-        }
-
-        const fakeName = fakeUser?.[0]?.user_name || 'Bot User';
+        // Get fake user name (usar nomes aleatórios simples)
+        const fakeNames = ['Carlos Silva', 'Maria Santos', 'João Costa', 'Ana Lima', 'Pedro Rocha'];
+        const fakeName = fakeNames[Math.floor(Math.random() * fakeNames.length)];
         const bidAmount = auction.current_price + auction.bid_increment;
 
         // Place protection bid

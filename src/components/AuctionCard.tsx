@@ -102,41 +102,7 @@ export const AuctionCard = ({
     return () => clearInterval(interval);
   }, [ends_at, auctionStatus, id]);
 
-  // Timer dedicado para proteção - baseado no timestamp ends_at
-  useEffect(() => {
-    if (auctionStatus !== 'active' || !ends_at) return;
-
-    const protectionTimer = setInterval(() => {
-      const now = Date.now();
-      const endTime = new Date(ends_at).getTime();
-      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      
-      if (remaining <= 1) {
-        // Se o leilão tem proteção ativa e não atingiu a meta, ativar sistema de proteção
-        if (protected_mode && currentRevenue < protected_target) {
-          console.log('🛡️ Proteção ativa: acionando sistema bot - Meta:', protected_target, 'Atual:', currentRevenue);
-          triggerBotProtection();
-          return;
-        }
-        
-        setIsActive(false);
-        clearInterval(protectionTimer);
-      }
-    }, 1000);
-
-    return () => clearInterval(protectionTimer);
-  }, [auctionStatus, ends_at, protected_mode, currentRevenue, protected_target]);
-
-  // Função para acionar o sistema de proteção
-  const triggerBotProtection = async () => {
-    try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      await supabase.functions.invoke('bot-protected-bid');
-      console.log('🤖 Sistema de proteção acionado');
-    } catch (error) {
-      console.error('❌ Erro ao acionar proteção:', error);
-    }
-  };
+  // Lógica de proteção removida - agora é gerenciada inteiramente pelo backend via cron job
 
   const handleBid = async () => {
     if (userBids <= 0 || isBidding) return;
