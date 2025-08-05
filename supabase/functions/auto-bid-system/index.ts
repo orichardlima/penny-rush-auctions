@@ -89,11 +89,12 @@ serve(async (req) => {
         continue;
       }
 
-      // Sistema de lances humanizado baseado no time_left
-      const criticalTime = auction.time_left <= 5;
-      const urgentTime = auction.time_left <= 3;
+      // Sistema de lances mais agressivo para leilões ativos
+      // Como o timer sempre reseta para 15s quando há lances, precisamos ser mais agressivos
+      const activeAuction = auction.time_left <= 15; // Considera qualquer leilão ativo
+      const competitiveMode = auction.time_left <= 15; // Modo competitivo quando há atividade constante
       
-      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Critical: ${criticalTime}, Urgent: ${urgentTime}`);
+      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Active: ${activeAuction}, Competitive: ${competitiveMode}`);
       
       let shouldBid = false;
       let bidReason = '';
@@ -103,43 +104,40 @@ serve(async (req) => {
         const now = new Date().getTime();
         const timeSinceLastBid = (now - lastBidTime) / 1000;
         
-        // Lógica baseada no time_left para comportamento mais humanizado
-        if (urgentTime) {
-          // Últimos 3 segundos - lance quase garantido
-          shouldBid = Math.random() < 0.9;
-          bidReason = 'urgent_time';
-        } else if (criticalTime) {
-          // 4-5 segundos - lance muito provável
-          shouldBid = Math.random() < 0.7;
-          bidReason = 'critical_time';
-        } else if (auction.time_left <= 10) {
-          // 6-10 segundos - lance moderadamente provável
-          shouldBid = timeSinceLastBid >= 3 && Math.random() < 0.5;
-          bidReason = 'moderate_pressure';
+        // Sistema mais agressivo - intervalos menores e maior probabilidade
+        if (competitiveMode) {
+          // Em modo competitivo (leilão com atividade constante)
+          if (timeSinceLastBid >= 2) { // Reduzido de 3s para 2s
+            shouldBid = Math.random() < 0.85; // Aumentado de 50% para 85%
+            bidReason = 'competitive_mode_aggressive';
+          } else if (timeSinceLastBid >= 1) {
+            shouldBid = Math.random() < 0.6; // 60% chance após 1 segundo
+            bidReason = 'competitive_mode_moderate';
+          }
         } else {
-          // Mais de 10 segundos - lance baseado em intervalo
-          const minInterval = auction.auto_bid_min_interval;
-          const maxInterval = Math.min(auction.auto_bid_max_interval, 6);
+          // Leilão menos ativo - usar intervalos normais mas ainda mais agressivos
+          const minInterval = Math.max(1, auction.auto_bid_min_interval - 1); // Reduzir intervalo mínimo
+          const maxInterval = Math.min(auction.auto_bid_max_interval, 4); // Reduzir intervalo máximo
           const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
-          shouldBid = timeSinceLastBid >= randomInterval;
-          bidReason = 'interval_based';
+          shouldBid = timeSinceLastBid >= randomInterval && Math.random() < 0.7;
+          bidReason = 'interval_based_aggressive';
         }
         
-        console.log(`⏱️ Time since last bid: ${timeSinceLastBid}s, Should bid: ${shouldBid}, Reason: ${bidReason}`);
+        console.log(`⏱️ Time since last bid: ${timeSinceLastBid.toFixed(1)}s, Should bid: ${shouldBid}, Reason: ${bidReason}`);
       } else {
-        // Primeiro lance - chance baseada no time_left
-        if (auction.time_left <= 10) {
-          shouldBid = Math.random() < 0.8; // 80% chance se timer baixo
-          bidReason = 'first_bid_low_timer';
+        // Primeiro lance - muito mais agressivo
+        if (activeAuction) {
+          shouldBid = Math.random() < 0.9; // 90% chance em leilões ativos
+          bidReason = 'first_bid_active';
         } else {
-          shouldBid = Math.random() < 0.4; // 40% chance se timer alto
+          shouldBid = Math.random() < 0.7; // 70% chance em geral
           bidReason = 'first_bid_normal';
         }
         console.log(`🎲 First bid opportunity - Timer: ${auction.time_left}s, Rolling: ${shouldBid ? 'YES' : 'NO'}, Reason: ${bidReason}`);
       }
       
-      // Pausa estratégica ocasional para simular hesitação humana
-      if (shouldBid && !urgentTime && Math.random() < 0.1) {
+      // Reduzir pausa estratégica de 10% para 2% e só em leilões não competitivos
+      if (shouldBid && !competitiveMode && Math.random() < 0.02) {
         shouldBid = false;
         bidReason = 'strategic_pause';
         console.log(`🤔 Strategic pause - simulating human hesitation`);
