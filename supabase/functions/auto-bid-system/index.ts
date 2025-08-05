@@ -89,25 +89,29 @@ serve(async (req) => {
         continue;
       }
 
-      // Check if auction time is critical (less than 5 seconds)
-      const criticalTime = auction.time_left <= 5;
+      // Tornar o sistema mais agressivo - dar lances mais frequentes
+      const criticalTime = auction.time_left <= 8;
       
-      // Check if enough time has passed since last auto bid
-      let shouldBid = criticalTime;
+      // Lógica mais agressiva para lances
+      let shouldBid = false;
       
-      if (auction.last_auto_bid_at && !criticalTime) {
+      if (auction.last_auto_bid_at) {
         const lastBidTime = new Date(auction.last_auto_bid_at).getTime();
         const now = new Date().getTime();
         const timeSinceLastBid = (now - lastBidTime) / 1000;
         
-        // Random interval between min and max
-        const randomInterval = Math.random() * (auction.auto_bid_max_interval - auction.auto_bid_min_interval) + auction.auto_bid_min_interval;
+        // Intervalos mais curtos e agressivos
+        let minInterval = criticalTime ? 2 : auction.auto_bid_min_interval;
+        let maxInterval = criticalTime ? 4 : Math.min(auction.auto_bid_max_interval, 8);
         
+        const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
         shouldBid = timeSinceLastBid >= randomInterval;
-      } else if (!auction.last_auto_bid_at) {
-        // First auto bid - wait random interval
-        const randomInterval = Math.random() * (auction.auto_bid_max_interval - auction.auto_bid_min_interval) + auction.auto_bid_min_interval;
-        shouldBid = Math.random() < 0.3; // 30% chance on first check
+        
+        console.log(`⏱️ Time since last bid: ${timeSinceLastBid}s, Next interval: ${randomInterval}s, Critical: ${criticalTime}`);
+      } else {
+        // Primeira chance de dar lance - mais provável
+        shouldBid = Math.random() < 0.7; // 70% chance no primeiro check
+        console.log(`🎲 First bid opportunity - rolling: ${shouldBid ? 'YES' : 'NO'}`);
       }
 
       if (!shouldBid) {
