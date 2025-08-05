@@ -187,7 +187,7 @@ serve(async (req) => {
         .update({ last_auto_bid_at: new Date().toISOString() })
         .eq('id', auction.id);
 
-      // Log the auto bid activity
+      // Log the auto bid activity with enhanced details
       await supabase
         .from('bot_logs')
         .insert({
@@ -200,7 +200,7 @@ serve(async (req) => {
           time_remaining: auction.time_left
         });
 
-      console.log(`✅ Auto bid placed: ${fakeName} bid R$ ${(bidAmount / 100).toFixed(2)} on ${auction.title}`);
+      console.log(`✅ Auto bid placed: ${fakeName} bid R$ ${(bidAmount / 100).toFixed(2)} on ${auction.title} (Time left: ${auction.time_left}s, Reason: ${bidReason})`);
 
       processedAuctions.push({
         auction_id: auction.id,
@@ -208,7 +208,8 @@ serve(async (req) => {
         fake_user: fakeName,
         bid_amount: bidAmount,
         current_revenue: currentRevenue,
-        time_remaining: auction.time_left
+        time_remaining: auction.time_left,
+        bid_reason: bidReason
       });
     }
 
