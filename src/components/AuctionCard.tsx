@@ -110,8 +110,7 @@ export const AuctionCard = ({
     setIsBidding(true);
     try {
       await onBid(id);
-      setTimeLeft(15);
-      setIsActive(true);
+      // Não forçar timer aqui - deixar o realtime atualizar
     } finally {
       setIsBidding(false);
     }
