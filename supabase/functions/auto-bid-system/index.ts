@@ -68,9 +68,7 @@ serve(async (req) => {
       }
 
       const currentRevenue = revenueData || 0;
-      const revenueProgress = auction.min_revenue_target > 0 ? currentRevenue / auction.min_revenue_target : 0;
-      
-      console.log(`💰 Current revenue: R$ ${(currentRevenue / 100).toFixed(2)} / Target: R$ ${(auction.min_revenue_target / 100).toFixed(2)} (${(revenueProgress * 100).toFixed(1)}%)`);
+      console.log(`💰 Current revenue: R$ ${(currentRevenue / 100).toFixed(2)} / Target: R$ ${(auction.min_revenue_target / 100).toFixed(2)}`);
 
       // If revenue target is already met, disable auto-bid and continue
       if (currentRevenue >= auction.min_revenue_target) {
@@ -91,14 +89,12 @@ serve(async (req) => {
         continue;
       }
 
-      // SISTEMA DE PROTEÇÃO EMERGENCIAL DENTRO DOS 15 SEGUNDOS
-      // Determinar fases críticas do leilão
-      const isEmergency = auction.time_left <= 3; // Últimos 3 segundos - EMERGÊNCIA
-      const isCritical = auction.time_left <= 5;  // Últimos 5 segundos - CRÍTICO
-      const isCompetitive = auction.time_left <= 10; // Últimos 10 segundos - COMPETITIVO
-      const isActive = auction.time_left <= 15; // Dentro do timer padrão - ATIVO
+      // Sistema de lances mais agressivo para leilões ativos
+      // Como o timer sempre reseta para 15s quando há lances, precisamos ser mais agressivos
+      const activeAuction = auction.time_left <= 15; // Considera qualquer leilão ativo
+      const competitiveMode = auction.time_left <= 15; // Modo competitivo quando há atividade constante
       
-      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Emergency: ${isEmergency}, Critical: ${isCritical}, Competitive: ${isCompetitive}, Active: ${isActive}`);
+      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Active: ${activeAuction}, Competitive: ${competitiveMode}`);
       
       let shouldBid = false;
       let bidReason = '';
@@ -108,73 +104,40 @@ serve(async (req) => {
         const now = new Date().getTime();
         const timeSinceLastBid = (now - lastBidTime) / 1000;
         
-        // 🚨 MODO EMERGENCIAL: FORÇAR lance se receita < meta e ≤3 segundos
-        if (isEmergency && currentRevenue < auction.min_revenue_target) {
-          shouldBid = true; // SEMPRE dar lance
-          bidReason = 'emergency_protection_forced';
-          console.log(`🚨 EMERGÊNCIA: Forçando lance para proteger faturamento! Receita: ${(revenueProgress * 100).toFixed(1)}%`);
-        }
-        // 🔥 MODO CRÍTICO: Muito agressivo quando ≤5 segundos e receita não atingiu meta
-        else if (isCritical && currentRevenue < auction.min_revenue_target) {
-          if (timeSinceLastBid >= 0.5) { // Lance a cada 0.5 segundos
-            shouldBid = true; // 100% de chance
-            bidReason = 'critical_protection';
-          }
-        }
-        // 🛡️ MODO PROTEÇÃO: Agressivo quando receita ≥80% da meta e tempo ≤10s
-        else if (revenueProgress >= 0.8 && isCompetitive) {
-          if (timeSinceLastBid >= 1) { // Lance a cada 1 segundo
-            shouldBid = Math.random() < 0.95; // 95% de chance
-            bidReason = 'protection_mode_aggressive';
-          }
-        }
-        // ⚡ MODO COMPETITIVO: Agressivo quando ≤10 segundos
-        else if (isCompetitive) {
-          if (timeSinceLastBid >= 1.5) { // Lance a cada 1.5 segundos
-            shouldBid = Math.random() < 0.85; // 85% de chance
+        // Sistema mais agressivo - intervalos menores e maior probabilidade
+        if (competitiveMode) {
+          // Em modo competitivo (leilão com atividade constante)
+          if (timeSinceLastBid >= 2) { // Reduzido de 3s para 2s
+            shouldBid = Math.random() < 0.85; // Aumentado de 50% para 85%
             bidReason = 'competitive_mode_aggressive';
+          } else if (timeSinceLastBid >= 1) {
+            shouldBid = Math.random() < 0.6; // 60% chance após 1 segundo
+            bidReason = 'competitive_mode_moderate';
           }
-        }
-        // 🎯 MODO ATIVO: Comportamento padrão dentro dos 15 segundos
-        else if (isActive) {
-          if (timeSinceLastBid >= 2) { // Lance a cada 2 segundos
-            shouldBid = Math.random() < 0.70; // 70% de chance
-            bidReason = 'active_mode_standard';
-          }
-        }
-        // ⏳ MODO AGUARDO: Leilão não está na fase ativa (>15s)
-        else {
-          // Comportamento mais passivo para leilões com muito tempo
-          const minInterval = Math.max(3, auction.auto_bid_min_interval);
-          const maxInterval = Math.min(auction.auto_bid_max_interval, 8);
+        } else {
+          // Leilão menos ativo - usar intervalos normais mas ainda mais agressivos
+          const minInterval = Math.max(1, auction.auto_bid_min_interval - 1); // Reduzir intervalo mínimo
+          const maxInterval = Math.min(auction.auto_bid_max_interval, 4); // Reduzir intervalo máximo
           const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
-          if (timeSinceLastBid >= randomInterval) {
-            shouldBid = Math.random() < 0.40; // 40% de chance
-            bidReason = 'waiting_mode_passive';
-          }
+          shouldBid = timeSinceLastBid >= randomInterval && Math.random() < 0.7;
+          bidReason = 'interval_based_aggressive';
         }
         
         console.log(`⏱️ Time since last bid: ${timeSinceLastBid.toFixed(1)}s, Should bid: ${shouldBid}, Reason: ${bidReason}`);
       } else {
-        // Primeiro lance - muito agressivo quando há urgência
-        if (isEmergency && currentRevenue < auction.min_revenue_target) {
-          shouldBid = true; // 100% chance em emergência
-          bidReason = 'first_bid_emergency';
-        } else if (isCritical) {
-          shouldBid = Math.random() < 0.95; // 95% chance em crítico
-          bidReason = 'first_bid_critical';
-        } else if (isActive) {
-          shouldBid = Math.random() < 0.80; // 80% chance em ativo
+        // Primeiro lance - muito mais agressivo
+        if (activeAuction) {
+          shouldBid = Math.random() < 0.9; // 90% chance em leilões ativos
           bidReason = 'first_bid_active';
         } else {
-          shouldBid = Math.random() < 0.50; // 50% chance em aguardo
-          bidReason = 'first_bid_waiting';
+          shouldBid = Math.random() < 0.7; // 70% chance em geral
+          bidReason = 'first_bid_normal';
         }
-        console.log(`🎲 First bid opportunity - Timer: ${auction.time_left}s, Revenue: ${(revenueProgress * 100).toFixed(1)}%, Rolling: ${shouldBid ? 'YES' : 'NO'}, Reason: ${bidReason}`);
+        console.log(`🎲 First bid opportunity - Timer: ${auction.time_left}s, Rolling: ${shouldBid ? 'YES' : 'NO'}, Reason: ${bidReason}`);
       }
       
-      // Remover pausa estratégica em modos críticos de proteção
-      if (shouldBid && !isEmergency && !isCritical && Math.random() < 0.01) {
+      // Reduzir pausa estratégica de 10% para 2% e só em leilões não competitivos
+      if (shouldBid && !competitiveMode && Math.random() < 0.02) {
         shouldBid = false;
         bidReason = 'strategic_pause';
         console.log(`🤔 Strategic pause - simulating human hesitation`);
