@@ -43,6 +43,7 @@ interface Auction {
   created_at: string;
   market_value: number;
   revenue_target: number;
+  real_revenue?: number;
 }
 
 interface User {
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [bidPackages, setBidPackages] = useState<BidPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realRevenue, setRealRevenue] = useState<{ [key: string]: number }>({});
   const [newAuction, setNewAuction] = useState({
     title: '',
     description: '',
@@ -113,6 +115,25 @@ const AdminDashboard = () => {
       setAuctions(auctionsData || []);
       setUsers(usersData || []);
       setBidPackages(packagesData || []);
+
+      // Fetch real revenue for each auction
+      if (auctionsData && auctionsData.length > 0) {
+        const revenueData: { [key: string]: number } = {};
+        
+        for (const auction of auctionsData) {
+          try {
+            const { data: revenue } = await supabase.rpc('get_auction_revenue', {
+              auction_uuid: auction.id
+            });
+            revenueData[auction.id] = revenue || 0;
+          } catch (error) {
+            console.error(`Error fetching revenue for auction ${auction.id}:`, error);
+            revenueData[auction.id] = 0;
+          }
+        }
+        
+        setRealRevenue(revenueData);
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -350,10 +371,13 @@ const AdminDashboard = () => {
     );
   }
 
-  const totalRevenue = bidPackages.reduce((sum, pkg) => sum + (pkg.price * 10), 0); // Simulated
+  const totalRealRevenue = Object.values(realRevenue).reduce((sum, revenue) => sum + revenue, 0);
   const activeAuctions = auctions.filter(a => a.status === 'active').length;
   const totalUsers = users.length;
   const totalBids = auctions.reduce((sum, auction) => sum + auction.total_bids, 0);
+  const successfulAuctions = auctions.filter(a => a.status === 'finished' && realRevenue[a.id] >= a.revenue_target).length;
+  const finishedAuctions = auctions.filter(a => a.status === 'finished').length;
+  const successRate = finishedAuctions > 0 ? (successfulAuctions / finishedAuctions) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/50">
@@ -405,20 +429,23 @@ const AdminDashboard = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita Estimada</CardTitle>
+              <CardTitle className="text-sm font-medium">Receita Real</CardTitle>
               <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground">vendas de pacotes</p>
+              <div className="text-2xl font-bold">{formatPrice(totalRealRevenue)}</div>
+              <p className="text-xs text-muted-foreground">
+                faturamento real dos lances • {successRate.toFixed(0)}% de sucesso
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs do Dashboard Admin */}
         <Tabs defaultValue="auctions" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="auctions">Leilões</TabsTrigger>
+            <TabsTrigger value="revenue">Faturamento</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="packages">Pacotes</TabsTrigger>
             <TabsTrigger value="analytics">Estatísticas</TabsTrigger>
@@ -646,6 +673,115 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="revenue" className="space-y-4">
+            <h2 className="text-xl font-semibold">Relatório de Faturamento</h2>
+            
+            {/* Cards de Receita */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Receita Total Real</CardTitle>
+                  <DollarSign className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatPrice(totalRealRevenue)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Faturamento real dos lances
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-accent" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{successRate.toFixed(0)}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    {successfulAuctions} de {finishedAuctions} leilões atingiram a meta
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Receita Média</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-secondary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {finishedAuctions > 0 ? formatPrice(totalRealRevenue / finishedAuctions) : formatPrice(0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Por leilão finalizado
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabela Detalhada de Faturamento */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Faturamento Detalhado por Leilão</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Meta</TableHead>
+                      <TableHead>Receita Real</TableHead>
+                      <TableHead>% da Meta</TableHead>
+                      <TableHead>Margem</TableHead>
+                      <TableHead>Lances</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auctions
+                      .sort((a, b) => (realRevenue[b.id] || 0) - (realRevenue[a.id] || 0))
+                      .map((auction) => {
+                        const revenue = realRevenue[auction.id] || 0;
+                        const target = auction.revenue_target;
+                        const percentage = target > 0 ? (revenue / target) * 100 : 0;
+                        const margin = revenue - (auction.market_value || 0);
+                        
+                        return (
+                          <TableRow key={auction.id}>
+                            <TableCell className="font-medium">{auction.title}</TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                auction.status === 'active' ? 'default' : 
+                                auction.status === 'waiting' ? 'secondary' : 
+                                'outline'
+                              }>
+                                {auction.status === 'active' ? 'Ativo' : 
+                                 auction.status === 'waiting' ? 'Aguardando' : 'Finalizado'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatPrice(target)}</TableCell>
+                            <TableCell className="font-medium">{formatPrice(revenue)}</TableCell>
+                            <TableCell>
+                              <span className={percentage >= 100 ? 'text-green-600 font-medium' : 'text-red-600'}>
+                                {percentage.toFixed(1)}%
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className={margin >= 0 ? 'text-green-600 font-medium' : 'text-red-600'}>
+                                {formatPrice(margin)}
+                              </span>
+                            </TableCell>
+                            <TableCell>{auction.total_bids}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           <TabsContent value="users" className="space-y-4">
             <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
@@ -746,8 +882,8 @@ const AdminDashboard = () => {
                     <span className="font-bold">{totalBids}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Receita Estimada:</span>
-                    <span className="font-bold">{formatPrice(totalRevenue)}</span>
+                    <span>Receita Real:</span>
+                    <span className="font-bold">{formatPrice(totalRealRevenue)}</span>
                   </div>
                 </CardContent>
               </Card>
