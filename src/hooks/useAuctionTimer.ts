@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toZonedTime } from 'date-fns-tz';
+import { useAuctionMonitoring } from './useAuctionMonitoring';
 
 export const useAuctionTimer = (onAuctionUpdate: () => void) => {
+  // Hook de monitoramento contínuo
+  useAuctionMonitoring(onAuctionUpdate);
   useEffect(() => {
     const checkAndActivateWaitingAuctions = async () => {
       try {
