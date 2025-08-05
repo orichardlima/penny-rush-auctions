@@ -43,6 +43,7 @@ interface Auction {
   created_at: string;
   market_value: number;
   revenue_target: number;
+  time_left: number;
   real_revenue?: number;
 }
 
@@ -443,11 +444,12 @@ const AdminDashboard = () => {
 
         {/* Tabs do Dashboard Admin */}
         <Tabs defaultValue="auctions" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="auctions">Leilões</TabsTrigger>
             <TabsTrigger value="revenue">Faturamento</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="packages">Pacotes</TabsTrigger>
+            <TabsTrigger value="bots">Sistema de Bots</TabsTrigger>
             <TabsTrigger value="analytics">Estatísticas</TabsTrigger>
           </TabsList>
 
@@ -857,6 +859,205 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="bots" className="space-y-4">
+            <h2 className="text-xl font-semibold">Sistema de Bots Automatizado</h2>
+            
+            {/* Cards de Status dos Bots */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Bots Ativos</CardTitle>
+                  <Settings className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">Sistema Ativo</div>
+                  <p className="text-xs text-muted-foreground">
+                    Monitoramento automático ativo
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Leilões Protegidos</CardTitle>
+                  <Package className="h-4 w-4 text-accent" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {auctions.filter(a => a.status === 'active' && a.revenue_target > 0).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    com meta de faturamento definida
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Intervenções Hoje</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-secondary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">-</div>
+                  <p className="text-xs text-muted-foreground">
+                    lances automáticos realizados
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Configurações do Sistema */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Como Funciona o Sistema de Bots</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">🤖 Funcionamento Automático</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• <strong>Monitoramento:</strong> O sistema verifica leilões ativos a cada 2-3 segundos</li>
+                    <li>• <strong>Ativação:</strong> Bots atuam quando timer &le; 8 segundos e receita &lt; meta</li>
+                    <li>• <strong>Timing:</strong> Lances entre 3-8 segundos restantes para parecer natural</li>
+                    <li>• <strong>Desativação:</strong> Para automaticamente quando meta de faturamento é atingida</li>
+                    <li>• <strong>Reset de Timer:</strong> Cada lance reseta o timer para 15 segundos</li>
+                  </ul>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <h4 className="font-semibold mb-2 text-amber-800 dark:text-amber-200">⚠️ Importante</h4>
+                  <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
+                    <li>• Bots só atuam em leilões com meta de faturamento definida</li>
+                    <li>• Lances fictícios servem apenas para manter engajamento</li>
+                    <li>• Sistema garante sustentabilidade financeira da plataforma</li>
+                    <li>• Transparência: uso de bots está nos termos de uso</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Controles Manuais */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Controles Manuais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-4">
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke('auto-bid-system');
+                        if (error) throw error;
+                        toast({
+                          title: 'Sistema Executado!',
+                          description: 'Verificação manual dos bots realizada com sucesso.',
+                        });
+                      } catch (error) {
+                        toast({
+                          title: 'Erro',
+                          description: 'Não foi possível executar o sistema de bots.',
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Executar Verificação Manual
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fetchAdminData()}
+                    className="flex-1"
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Atualizar Estatísticas
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Use a verificação manual para testar o sistema ou forçar uma análise imediata dos leilões ativos.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Status dos Leilões */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Status dos Leilões Ativos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Leilão</TableHead>
+                      <TableHead>Timer</TableHead>
+                      <TableHead>Meta</TableHead>
+                      <TableHead>Receita Atual</TableHead>
+                      <TableHead>Progresso</TableHead>
+                      <TableHead>Status Bot</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auctions
+                      .filter(auction => auction.status === 'active')
+                      .map((auction) => {
+                        const revenue = realRevenue[auction.id] || 0;
+                        const target = auction.revenue_target;
+                        const percentage = target > 0 ? (revenue / target) * 100 : 0;
+                        const needsBot = target > 0 && revenue < target;
+                        
+                        return (
+                          <TableRow key={auction.id}>
+                            <TableCell className="font-medium">{auction.title}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {auction.time_left || 15}s
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatPrice(target)}</TableCell>
+                            <TableCell>{formatPrice(revenue)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-muted rounded-full h-2">
+                                  <div 
+                                    className={`h-2 rounded-full transition-all ${
+                                      percentage >= 100 ? 'bg-green-500' : 'bg-primary'
+                                    }`}
+                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium">
+                                  {percentage.toFixed(0)}%
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                target === 0 ? 'secondary' :
+                                percentage >= 100 ? 'outline' :
+                                needsBot ? 'default' : 'secondary'
+                              }>
+                                {target === 0 ? 'Sem Meta' :
+                                 percentage >= 100 ? 'Meta Atingida' :
+                                 needsBot ? 'Protegido' : 'Inativo'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+                
+                {auctions.filter(a => a.status === 'active').length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum leilão ativo no momento
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

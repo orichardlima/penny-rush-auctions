@@ -201,6 +201,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean | null
+          is_bot: boolean | null
           updated_at: string
           user_id: string
         }
@@ -212,6 +213,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          is_bot?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -223,6 +225,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          is_bot?: boolean | null
           updated_at?: string
           user_id?: string
         }
@@ -240,6 +243,10 @@ export type Database = {
       get_auction_revenue: {
         Args: { auction_uuid: string }
         Returns: number
+      }
+      get_random_bot: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       is_admin_user: {
         Args: { user_uuid: string }
