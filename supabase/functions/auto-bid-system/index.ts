@@ -89,58 +89,25 @@ serve(async (req) => {
         continue;
       }
 
-      // Sistema de lances mais agressivo para leilões ativos
-      // Como o timer sempre reseta para 15s quando há lances, precisamos ser mais agressivos
-      const activeAuction = auction.time_left <= 15; // Considera qualquer leilão ativo
-      const competitiveMode = auction.time_left <= 15; // Modo competitivo quando há atividade constante
+      // Check if auction time is critical (less than 5 seconds)
+      const criticalTime = auction.time_left <= 5;
       
-      console.log(`⏰ Auction timer: ${auction.time_left}s remaining, Active: ${activeAuction}, Competitive: ${competitiveMode}`);
+      // Check if enough time has passed since last auto bid
+      let shouldBid = criticalTime;
       
-      let shouldBid = false;
-      let bidReason = '';
-      
-      if (auction.last_auto_bid_at) {
+      if (auction.last_auto_bid_at && !criticalTime) {
         const lastBidTime = new Date(auction.last_auto_bid_at).getTime();
         const now = new Date().getTime();
         const timeSinceLastBid = (now - lastBidTime) / 1000;
         
-        // Sistema mais agressivo - intervalos menores e maior probabilidade
-        if (competitiveMode) {
-          // Em modo competitivo (leilão com atividade constante)
-          if (timeSinceLastBid >= 2) { // Reduzido de 3s para 2s
-            shouldBid = Math.random() < 0.85; // Aumentado de 50% para 85%
-            bidReason = 'competitive_mode_aggressive';
-          } else if (timeSinceLastBid >= 1) {
-            shouldBid = Math.random() < 0.6; // 60% chance após 1 segundo
-            bidReason = 'competitive_mode_moderate';
-          }
-        } else {
-          // Leilão menos ativo - usar intervalos normais mas ainda mais agressivos
-          const minInterval = Math.max(1, auction.auto_bid_min_interval - 1); // Reduzir intervalo mínimo
-          const maxInterval = Math.min(auction.auto_bid_max_interval, 4); // Reduzir intervalo máximo
-          const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
-          shouldBid = timeSinceLastBid >= randomInterval && Math.random() < 0.7;
-          bidReason = 'interval_based_aggressive';
-        }
+        // Random interval between min and max
+        const randomInterval = Math.random() * (auction.auto_bid_max_interval - auction.auto_bid_min_interval) + auction.auto_bid_min_interval;
         
-        console.log(`⏱️ Time since last bid: ${timeSinceLastBid.toFixed(1)}s, Should bid: ${shouldBid}, Reason: ${bidReason}`);
-      } else {
-        // Primeiro lance - muito mais agressivo
-        if (activeAuction) {
-          shouldBid = Math.random() < 0.9; // 90% chance em leilões ativos
-          bidReason = 'first_bid_active';
-        } else {
-          shouldBid = Math.random() < 0.7; // 70% chance em geral
-          bidReason = 'first_bid_normal';
-        }
-        console.log(`🎲 First bid opportunity - Timer: ${auction.time_left}s, Rolling: ${shouldBid ? 'YES' : 'NO'}, Reason: ${bidReason}`);
-      }
-      
-      // Reduzir pausa estratégica de 10% para 2% e só em leilões não competitivos
-      if (shouldBid && !competitiveMode && Math.random() < 0.02) {
-        shouldBid = false;
-        bidReason = 'strategic_pause';
-        console.log(`🤔 Strategic pause - simulating human hesitation`);
+        shouldBid = timeSinceLastBid >= randomInterval;
+      } else if (!auction.last_auto_bid_at) {
+        // First auto bid - wait random interval
+        const randomInterval = Math.random() * (auction.auto_bid_max_interval - auction.auto_bid_min_interval) + auction.auto_bid_min_interval;
+        shouldBid = Math.random() < 0.3; // 30% chance on first check
       }
 
       if (!shouldBid) {
@@ -185,7 +152,7 @@ serve(async (req) => {
         .update({ last_auto_bid_at: new Date().toISOString() })
         .eq('id', auction.id);
 
-      // Log the auto bid activity with enhanced details
+      // Log the auto bid activity
       await supabase
         .from('bot_logs')
         .insert({
@@ -198,7 +165,7 @@ serve(async (req) => {
           time_remaining: auction.time_left
         });
 
-      console.log(`✅ Auto bid placed: ${fakeName} bid R$ ${(bidAmount / 100).toFixed(2)} on ${auction.title} (Time left: ${auction.time_left}s, Reason: ${bidReason})`);
+      console.log(`✅ Auto bid placed: ${fakeName} bid R$ ${(bidAmount / 100).toFixed(2)} on ${auction.title}`);
 
       processedAuctions.push({
         auction_id: auction.id,
@@ -206,8 +173,7 @@ serve(async (req) => {
         fake_user: fakeName,
         bid_amount: bidAmount,
         current_revenue: currentRevenue,
-        time_remaining: auction.time_left,
-        bid_reason: bidReason
+        time_remaining: auction.time_left
       });
     }
 

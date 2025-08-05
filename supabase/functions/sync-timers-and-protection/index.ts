@@ -36,9 +36,9 @@ serve(async (req) => {
     // 2. Get auctions that just expired (time_left = 0) with protection enabled
     const { data: expiredProtectedAuctions, error: fetchError } = await supabaseClient
       .from('auctions')
-      .select('id, title, current_price, bid_increment, bid_cost, protected_target, protected_mode, status, time_left')
+      .select('*')
       .eq('status', 'active')
-      .lte('time_left', 1)  // Buscar leilões próximos ao fim (0 ou 1 segundo)
+      .eq('time_left', 0)
       .eq('protected_mode', true);
 
     if (fetchError) {
