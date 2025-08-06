@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           bid_cost: number | null
           bid_increment: number | null
+          company_revenue: number
           created_at: string
           current_price: number | null
           description: string | null
@@ -39,6 +40,7 @@ export type Database = {
         Insert: {
           bid_cost?: number | null
           bid_increment?: number | null
+          company_revenue?: number
           created_at?: string
           current_price?: number | null
           description?: string | null
@@ -60,6 +62,7 @@ export type Database = {
         Update: {
           bid_cost?: number | null
           bid_increment?: number | null
+          company_revenue?: number
           created_at?: string
           current_price?: number | null
           description?: string | null
