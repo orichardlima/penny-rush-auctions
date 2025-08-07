@@ -56,17 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .from('profiles')
               .select('*')
               .eq('user_id', session.user.id)
-              .maybeSingle();
+              .single();
             
             if (error) {
               console.error('AuthContext: Error fetching profile:', error);
               setProfile(null);
-            } else if (profileData) {
+            } else {
               console.log('AuthContext: Profile fetched:', profileData);
               setProfile(profileData);
-            } else {
-              console.log('AuthContext: No profile found for user:', session.user.id);
-              setProfile(null);
             }
           } catch (error) {
             console.error('AuthContext: Exception fetching profile:', error);

@@ -32,7 +32,7 @@ serve(async (req) => {
     // Buscar leilões ativos que precisam de intervenção
     const { data: auctions, error: auctionsError } = await supabaseClient
       .from('auctions')
-      .select('id, time_left, revenue_target, current_price, bid_increment, bid_cost, status, ends_at')
+      .select('id, time_left, revenue_target, current_price, bid_increment, bid_cost, status')
       .eq('status', 'active')
       .gt('revenue_target', 0)
       .lt('time_left', 8)
