@@ -29,7 +29,11 @@ serve(async (req) => {
     }
 
     // 2. Executar sistema de proteção de bots
-    const { data: botData, error: botError } = await supabaseClient.functions.invoke('auto-bid-system');
+    const { data: botData, error: botError } = await supabaseClient.functions.invoke('auto-bid-system', {
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      }
+    });
     
     if (botError) {
       console.error('❌ Erro no sistema de bots:', botError);
