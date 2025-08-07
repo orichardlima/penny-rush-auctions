@@ -57,7 +57,18 @@ const Dashboard = () => {
 
   console.log('Dashboard: Renderizando dashboard para:', profile.is_admin ? 'Admin' : 'User');
   
-  return profile.is_admin ? <AdminDashboard /> : <UserDashboard />;
+  try {
+    return profile.is_admin ? <AdminDashboard /> : <UserDashboard />;
+  } catch (error) {
+    console.error('Error rendering dashboard:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-muted-foreground">Erro ao carregar dashboard. Recarregue a página.</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default Dashboard;
