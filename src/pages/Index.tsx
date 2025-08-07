@@ -99,41 +99,36 @@ const Index = () => {
 
   const fetchAuctions = useCallback(async () => {
     try {
-      console.log('🔍 Buscando leilões...');
-      setLoading(true);
-      
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
         .or(`status.in.(active,waiting),and(status.eq.finished,updated_at.gte.${new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()})`)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching auctions:', error);
+        console.error('Error fetching auctions:', error);
         toast({
           title: "Erro ao carregar leilões",
           description: "Não foi possível carregar os leilões ativos.",
           variant: "destructive"
         });
-        setAuctions([]); // Set empty array so loading stops
         return;
       }
 
-      console.log('✅ Leilões carregados:', data?.length || 0);
-
-      // Transform data without complex bidder fetching for now
-      const transformedAuctions = (data || []).map(auction => 
-        transformAuctionData({
-          ...auction,
-          recentBidders: [] // Simplified for now
+      // Para cada leilão, buscar os lances recentes
+      const auctionsWithBidders = await Promise.all(
+        (data || []).map(async (auction) => {
+          const recentBidders = await fetchRecentBidders(auction.id);
+          return transformAuctionData({
+            ...auction,
+            recentBidders
+          });
         })
       );
 
-      setAuctions(transformedAuctions);
+      setAuctions(auctionsWithBidders);
     } catch (error) {
-      console.error('❌ Exception fetching auctions:', error);
-      setAuctions([]); // Set empty array so loading stops
+      console.error('Error fetching auctions:', error);
     } finally {
       setLoading(false);
     }
