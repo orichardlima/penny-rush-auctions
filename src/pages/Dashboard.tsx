@@ -55,9 +55,10 @@ const Dashboard = () => {
     );
   }
 
-  console.log('Dashboard: Renderizando dashboard para:', profile.is_admin ? 'Admin' : 'User');
+  console.log('Dashboard: Renderizando dashboard para:', !!profile.is_admin ? 'Admin' : 'User');
+  console.log('Dashboard: Profile data:', { is_admin: profile.is_admin, email: profile.email, full_name: profile.full_name });
   
-  return profile.is_admin ? <AdminDashboard /> : <UserDashboard />;
+  return !!profile.is_admin ? <AdminDashboard /> : <UserDashboard />;
 };
 
 export default Dashboard;

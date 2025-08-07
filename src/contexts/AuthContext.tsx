@@ -8,8 +8,9 @@ interface Profile {
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
-  bids_balance: number;
-  is_admin: boolean;
+  bids_balance: number | null;
+  is_admin: boolean | null;
+  is_bot: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error('AuthContext: Error fetching profile:', error);
               setProfile(null);
             } else {
-              console.log('AuthContext: Profile fetched:', profileData);
+              console.log('AuthContext: Profile fetched successfully:', {
+                id: profileData?.id,
+                email: profileData?.email,
+                is_admin: profileData?.is_admin,
+                bids_balance: profileData?.bids_balance
+              });
               setProfile(profileData);
             }
           } catch (error) {
