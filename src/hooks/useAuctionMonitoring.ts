@@ -25,9 +25,9 @@ export const useAuctionMonitoring = (onAuctionUpdate: () => void) => {
           const endTime = new Date(auction.ends_at).getTime();
           const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
           
-          // Se o timer calculado é diferente do timer no banco, atualizar
-          // Mas NÃO interferir se a diferença é pequena (evita conflitos com lances recentes)
-          if (Math.abs(timeLeft - auction.time_left) > 3 && timeLeft < auction.time_left) {
+          // CORREÇÃO: Só sincronizar se houver uma diferença grande E o timer calculado for menor
+          // Isso evita sobrescrever o timer de 15s quando um lance é feito
+          if (Math.abs(timeLeft - auction.time_left) > 10 && timeLeft < auction.time_left) {
             console.log(`⏰ Sincronizando timer do leilão ${auction.id}: ${auction.time_left}s -> ${timeLeft}s`);
             
             const { error: syncError } = await supabase.rpc('sync_auction_timer', {
@@ -49,7 +49,7 @@ export const useAuctionMonitoring = (onAuctionUpdate: () => void) => {
     // Executar imediatamente
     startMonitoring();
 
-    // Executar a cada 5 segundos para monitoramento mais suave
+    // Executar a cada 5 segundos (menos frequente para evitar conflitos)
     const interval = setInterval(startMonitoring, 5000);
 
     return () => clearInterval(interval);
