@@ -99,6 +99,7 @@ const Index = () => {
 
   const fetchAuctions = useCallback(async () => {
     try {
+      console.log('🔍 Buscando leilões...');
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
@@ -106,7 +107,7 @@ const Index = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching auctions:', error);
+        console.error('❌ Error fetching auctions:', error);
         toast({
           title: "Erro ao carregar leilões",
           description: "Não foi possível carregar os leilões ativos.",
@@ -115,9 +116,12 @@ const Index = () => {
         return;
       }
 
+      console.log('✅ Leilões encontrados:', data?.length || 0);
+
       // Para cada leilão, buscar os lances recentes
       const auctionsWithBidders = await Promise.all(
         (data || []).map(async (auction) => {
+          console.log('🔍 Processando leilão:', auction.id, auction.title);
           const recentBidders = await fetchRecentBidders(auction.id);
           return transformAuctionData({
             ...auction,
@@ -126,10 +130,12 @@ const Index = () => {
         })
       );
 
+      console.log('✅ Leilões processados:', auctionsWithBidders.length);
       setAuctions(auctionsWithBidders);
     } catch (error) {
-      console.error('Error fetching auctions:', error);
+      console.error('❌ Error fetching auctions:', error);
     } finally {
+      console.log('🏁 Finalizando carregamento de leilões');
       setLoading(false);
     }
   }, [toast]);
