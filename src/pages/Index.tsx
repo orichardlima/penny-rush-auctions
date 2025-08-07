@@ -100,16 +100,15 @@ const Index = () => {
   const fetchAuctions = useCallback(async () => {
     console.log('🔍 Iniciando fetchAuctions...');
     try {
-      const { data, error } = await supabase
+      // Simplificar a query - buscar todos os leilões ativos primeiro
+      const { data: activeAuctions, error: activeError } = await supabase
         .from('auctions')
         .select('*')
-        .or(`status.in.(active,waiting),and(status.eq.finished,updated_at.gte.${new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()})`)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
-      console.log('📊 Resposta da query auctions:', { data: data?.length, error });
-
-      if (error) {
-        console.error('Error fetching auctions:', error);
+      if (activeError) {
+        console.error('Error fetching active auctions:', activeError);
         toast({
           title: "Erro ao carregar leilões",
           description: "Não foi possível carregar os leilões ativos.",
@@ -118,11 +117,25 @@ const Index = () => {
         return;
       }
 
-      console.log('📋 Dados dos leilões recebidos:', data);
+      // Buscar leilões finalizados recentemente (últimas 48h)
+      const { data: recentFinished, error: finishedError } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('status', 'finished')
+        .gte('updated_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
+
+      if (finishedError) {
+        console.error('Error fetching recent finished auctions:', finishedError);
+      }
+
+      // Combinar os resultados
+      const allAuctions = [...(activeAuctions || []), ...(recentFinished || [])];
+      console.log('📊 Total de leilões encontrados:', allAuctions.length);
 
       // Para cada leilão, buscar os lances recentes
       const auctionsWithBidders = await Promise.all(
-        (data || []).map(async (auction) => {
+        allAuctions.map(async (auction) => {
           const recentBidders = await fetchRecentBidders(auction.id);
           const transformed = transformAuctionData({
             ...auction,
@@ -136,7 +149,7 @@ const Index = () => {
       console.log('✅ Leilões processados:', auctionsWithBidders.length);
       setAuctions(auctionsWithBidders);
     } catch (error) {
-      console.error('Error fetching auctions:', error);
+      console.error('Error fetchAuctions:', error);
     } finally {
       console.log('✅ fetchAuctions finalizado, setLoading(false)');
       setLoading(false);
