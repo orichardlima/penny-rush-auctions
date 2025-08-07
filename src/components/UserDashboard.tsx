@@ -56,8 +56,11 @@ const UserDashboard = () => {
 
   const fetchUserData = async () => {
     try {
-      // Fetch user bids
-      const { data: bidsData } = await supabase
+      console.log('🔍 Buscando dados do usuário...');
+      setLoading(true);
+      
+      // Fetch user bids with simpler query
+      const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
         .select(`
           *,
@@ -69,8 +72,16 @@ const UserDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // Fetch user purchases
-      const { data: purchasesData } = await supabase
+      if (bidsError) {
+        console.error('❌ Error fetching bids:', bidsError);
+        setBids([]);
+      } else {
+        console.log('✅ Lances carregados:', bidsData?.length || 0);
+        setBids(bidsData || []);
+      }
+
+      // Fetch user purchases with simpler query
+      const { data: purchasesData, error: purchasesError } = await supabase
         .from('bid_purchases')
         .select(`
           *,
@@ -81,11 +92,19 @@ const UserDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setBids(bidsData || []);
-      setPurchases(purchasesData || []);
+      if (purchasesError) {
+        console.error('❌ Error fetching purchases:', purchasesError);
+        setPurchases([]);
+      } else {
+        console.log('✅ Compras carregadas:', purchasesData?.length || 0);
+        setPurchases(purchasesData || []);
+      }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('❌ Error fetching user data:', error);
+      setBids([]);
+      setPurchases([]);
     } finally {
+      console.log('✅ Dados do usuário carregados');
       setLoading(false);
     }
   };
