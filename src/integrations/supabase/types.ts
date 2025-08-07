@@ -239,10 +239,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      auto_bid_system: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       finalize_expired_auctions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
